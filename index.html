@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PG Manager</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --surface:#ffffff; --surface-2:#f8f9fb; --border:#e4e7ec;
+    --text:#1a2233; --muted:#697386; --brand:#4f46e5; --brand-soft:#eef0fe;
+    --green:#0f9d58; --green-soft:#e6f4ea; --amber:#d98a00; --amber-soft:#fdf3e0;
+    --red:#d1434b; --red-soft:#fbe9ea; --blue:#2563eb; --blue-soft:#e7effe;
+    --shadow:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.1);
+    --radius:12px;
+  }
+  [data-theme="dark"]{
+    --bg:#0f1420; --surface:#1a2130; --surface-2:#151b28; --border:#2a3446;
+    --text:#e7ecf3; --muted:#95a1b5; --brand:#7c83ff; --brand-soft:#232a4d;
+    --green:#3ecf8e; --green-soft:#12301f; --amber:#e8a838; --amber-soft:#332512;
+    --red:#f2777a; --red-soft:#361a1c; --blue:#5b8def; --blue-soft:#12244a;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:14px}
+
+  /* Layout */
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:40;transition:transform .2s}
+  .brand{display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid var(--border)}
+  .brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#4f46e5,#7c83ff);
+    display:grid;place-items:center;color:#fff;font-weight:700;font-size:16px}
+  .brand h1{font-size:16px;font-weight:700;letter-spacing:-.2px}
+  .brand small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+  .nav{padding:12px 12px;flex:1;overflow-y:auto}
+  .nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;
+    color:var(--muted);text-decoration:none;font-weight:500;margin-bottom:2px;transition:.12s}
+  .nav a:hover{background:var(--surface-2);color:var(--text)}
+  .nav a.active{background:var(--brand-soft);color:var(--brand);font-weight:600}
+  .nav a .ic{width:20px;text-align:center;font-size:16px}
+  .nav a .badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;
+    padding:1px 7px;border-radius:20px}
+  .sidebar-foot{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px}
+  .sidebar-foot button{flex:1;padding:8px;border:1px solid var(--border);background:var(--surface-2);
+    border-radius:8px;color:var(--muted);font-size:12px;font-weight:600}
+  .sidebar-foot button:hover{color:var(--text);border-color:var(--brand)}
+
+  .main{flex:1;margin-left:230px;min-width:0}
+  .topbar{display:flex;align-items:center;gap:14px;padding:16px 26px;
+    background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
+  .topbar .menu-btn{display:none;background:none;border:none;font-size:22px;color:var(--text)}
+  .topbar h2{font-size:19px;font-weight:700;letter-spacing:-.3px}
+  .topbar .sub{color:var(--muted);font-size:13px;margin-top:1px}
+  .topbar .spacer{flex:1}
+  .content{padding:26px;max-width:1240px}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;
+    border:1px solid var(--border);background:var(--surface);color:var(--text);font-weight:600;font-size:13px}
+  .btn:hover{border-color:var(--brand)}
+  .btn-primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn-primary:hover{filter:brightness(1.07)}
+  .btn-sm{padding:6px 11px;font-size:12px;border-radius:7px}
+  .btn-icon{padding:6px 9px;background:none;border:none;color:var(--muted);border-radius:7px;font-size:14px}
+  .btn-icon:hover{background:var(--surface-2);color:var(--text)}
+  .btn-danger:hover{color:var(--red)}
+
+  /* Cards & grids */
+  .grid{display:grid;gap:16px}
+  .stats{grid-template-columns:repeat(auto-fill,minmax(215px,1fr));margin-bottom:22px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .stat{padding:18px 20px}
+  .stat .label{color:var(--muted);font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .stat .val{font-size:27px;font-weight:800;letter-spacing:-.6px;margin-top:9px}
+  .stat .foot{font-size:12px;color:var(--muted);margin-top:5px}
+  .stat .foot b{font-weight:700}
+  .stat .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px}
+
+  .section-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .section-head h3{font-size:16px;font-weight:700}
+  .section-head .spacer{flex:1}
+
+  /* Tables */
+  .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)}
+  table{width:100%;border-collapse:collapse;min-width:560px}
+  th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);
+    font-weight:700;padding:12px 16px;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface-2)}
+  td{padding:13px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--surface-2)}
+  .t-name{font-weight:600}
+  .t-sub{font-size:12px;color:var(--muted)}
+  .row-actions{display:flex;gap:2px;justify-content:flex-end}
+
+  /* Pills */
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
+    padding:3px 10px;border-radius:20px;white-space:nowrap}
+  .pill-green{background:var(--green-soft);color:var(--green)}
+  .pill-amber{background:var(--amber-soft);color:var(--amber)}
+  .pill-red{background:var(--red-soft);color:var(--red)}
+  .pill-blue{background:var(--blue-soft);color:var(--blue)}
+  .pill-gray{background:var(--surface-2);color:var(--muted)}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+  /* Empty state */
+  .empty{text-align:center;padding:52px 20px;color:var(--muted)}
+  .empty .em{font-size:40px;margin-bottom:12px;opacity:.8}
+  .empty p{margin-bottom:16px}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(16,24,40,.5);z-index:60;display:none;
+    align-items:flex-start;justify-content:center;padding:36px 16px;overflow-y:auto;backdrop-filter:blur(2px)}
+  .overlay.open{display:flex}
+  .modal{background:var(--surface);border-radius:14px;width:100%;max-width:520px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+  .modal-head{display:flex;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border)}
+  .modal-head h3{font-size:17px;font-weight:700;flex:1}
+  .modal-body{padding:20px 22px;max-height:64vh;overflow-y:auto}
+  .modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:16px 22px;border-top:1px solid var(--border)}
+  .field{margin-bottom:15px}
+  .field.half{display:inline-block;width:calc(50% - 6px)}
+  .field.half:nth-of-type(odd){margin-right:12px}
+  .field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;color:var(--text)}
+  .field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1px solid var(--border);
+    border-radius:9px;background:var(--surface-2);color:var(--text);outline:none}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand);background:var(--surface)}
+  .field textarea{resize:vertical;min-height:64px}
+  .field .hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+  .search{flex:1;min-width:160px;max-width:320px;position:relative}
+  .search input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border);border-radius:9px;
+    background:var(--surface);color:var(--text);outline:none}
+  .search .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted)}
+  .filter-sel{padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)}
+
+  .two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+  .list-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+  .list-item:last-child{border-bottom:none}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--brand-soft);color:var(--brand);
+    display:grid;place-items:center;font-weight:700;font-size:14px;flex-shrink:0}
+  .card-pad{padding:20px}
+  .card-title{font-size:14px;font-weight:700;margin-bottom:4px}
+  .bar{height:8px;border-radius:5px;background:var(--surface-2);overflow:hidden;margin-top:8px}
+  .bar span{display:block;height:100%;background:var(--brand);border-radius:5px}
+  .muted{color:var(--muted)}
+  .amt-in{color:var(--green);font-weight:700}
+  .amt-out{color:var(--red);font-weight:700}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--text);color:var(--bg);padding:11px 20px;border-radius:10px;font-weight:600;font-size:13px;
+    z-index:100;opacity:0;transition:.25s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .overlay-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35}
+  @media(max-width:900px){.two-col{grid-template-columns:1fr}}
+  @media(max-width:768px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main{margin-left:0}
+    .topbar .menu-btn{display:block}
+    .content{padding:18px}
+    .overlay-bg.open{display:block}
+    .field.half{width:100%;display:block;margin-right:0}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">PG</div>
+      <div><h1>PG Manager</h1><small>Daily Operations</small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-foot">
+      <button onclick="Data.exportJSON()">⬇ Backup</button>
+      <button onclick="document.getElementById('importFile').click()">⬆ Restore</button>
+      <input type="file" id="importFile" accept="application/json" hidden onchange="Data.importJSON(this)">
+    </div>
+  </aside>
+  <div class="overlay-bg" id="overlayBg" onclick="toggleSidebar(false)"></div>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar(true)">☰</button>
+      <div><h2 id="pageTitle">Dashboard</h2><div class="sub" id="pageSub"></div></div>
+      <div class="spacer"></div>
+      <button class="btn-icon" title="Toggle theme" onclick="toggleTheme()" style="font-size:17px">🌓</button>
+      <button class="btn btn-primary" id="pageAction" onclick="pageActionClick()">+ Add</button>
+    </div>
+    <div class="content" id="view"></div>
+  </main>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modalTitle">Add</h3><button class="btn-icon" onclick="closeModal()" style="font-size:18px">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modalSave" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ DATA LAYER ============================ */
+const STORE_KEY = 'pgManagerData_v1';
+const DEFAULT = { rooms:[], tenants:[], payments:[], expenses:[], inventory:[], complaints:[], settings:{ pgName:'My PG', currency:'₹' } };
+
+const Data = {
+  db: null,
+  load(){
+    try{ this.db = JSON.parse(localStorage.getItem(STORE_KEY)) || null; }catch(e){ this.db=null; }
+    if(!this.db){ this.db = JSON.parse(JSON.stringify(DEFAULT)); this.seed(); this.save(); }
+    // ensure keys exist (forward compat)
+    for(const k in DEFAULT) if(!(k in this.db)) this.db[k] = JSON.parse(JSON.stringify(DEFAULT[k]));
+  },
+  save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(this.db)); }catch(e){ toast('⚠ Could not save (storage full/blocked)'); } },
+  reset(){ if(confirm('Erase ALL data and reload sample data? This cannot be undone.')){ this.db=JSON.parse(JSON.stringify(DEFAULT)); this.seed(); this.save(); render(); toast('Data reset'); } },
+  id(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); },
+
+  exportJSON(){
+    const blob = new Blob([JSON.stringify(this.db,null,2)], {type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='pg-manager-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+    URL.revokeObjectURL(a.href); toast('Backup downloaded');
+  },
+  importJSON(input){
+    const f=input.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=e=>{ try{ const d=JSON.parse(e.target.result); if(!d.rooms&&!d.tenants) throw 0;
+      this.db=Object.assign(JSON.parse(JSON.stringify(DEFAULT)),d); this.save(); render(); toast('Data restored');
+    }catch(err){ toast('⚠ Invalid backup file'); } input.value=''; };
+    r.readAsText(f);
+  },
+
+  seed(){
+    const d=this.db;
+    const r1=this.id(),r2=this.id(),r3=this.id(),r4=this.id();
+    d.rooms=[
+      {id:r1,number:'101',floor:'1',type:'Double Sharing',capacity:2,rent:6500,notes:'AC room'},
+      {id:r2,number:'102',floor:'1',type:'Single',capacity:1,rent:9000,notes:''},
+      {id:r3,number:'201',floor:'2',type:'Triple Sharing',capacity:3,rent:5500,notes:'Balcony'},
+      {id:r4,number:'202',floor:'2',type:'Double Sharing',capacity:2,rent:6500,notes:''},
+    ];
+    const t1=this.id(),t2=this.id(),t3=this.id();
+    d.tenants=[
+      {id:t1,name:'Amit Sharma',phone:'9876543210',roomId:r1,rent:6500,deposit:13000,joinDate:'2025-06-01',status:'active',idProof:'Aadhaar',notes:''},
+      {id:t2,name:'Priya Nair',phone:'9823456789',roomId:r1,rent:6500,deposit:13000,joinDate:'2025-07-15',status:'active',idProof:'PAN',notes:'Working professional'},
+      {id:t3,name:'Rahul Verma',phone:'9812345678',roomId:r3,rent:5500,deposit:11000,joinDate:'2025-08-01',status:'active',idProof:'Aadhaar',notes:''},
+    ];
+    const thisM=new Date().toISOString().slice(0,7);
+    d.payments=[
+      {id:this.id(),tenantId:t1,month:thisM,amount:6500,date:new Date().toISOString().slice(0,10),mode:'UPI',status:'paid'},
+      {id:this.id(),tenantId:t2,month:thisM,amount:6500,date:'',mode:'',status:'pending'},
+      {id:this.id(),tenantId:t3,month:thisM,amount:5500,date:new Date().toISOString().slice(0,10),mode:'Cash',status:'paid'},
+    ];
+    d.expenses=[
+      {id:this.id(),category:'Groceries',description:'Monthly ration & vegetables',amount:14000,date:new Date().toISOString().slice(0,10)},
+      {id:this.id(),category:'Utilities',description:'Electricity bill',amount:5200,date:new Date().toISOString().slice(0,10)},
+      {id:this.id(),category:'Salary',description:'Cook & cleaning staff',amount:18000,date:new Date().toISOString().slice(0,10)},
+    ];
+    d.inventory=[
+      {id:this.id(),name:'Rice',category:'Grocery',quantity:12,unit:'kg',minQuantity:15,notes:''},
+      {id:this.id(),name:'Cooking Gas Cylinder',category:'Utility',quantity:1,unit:'pcs',minQuantity:2,notes:''},
+      {id:this.id(),name:'Bedsheets',category:'Linen',quantity:20,unit:'pcs',minQuantity:10,notes:''},
+      {id:this.id(),name:'Toilet Cleaner',category:'Cleaning',quantity:4,unit:'bottles',minQuantity:3,notes:''},
+    ];
+    d.complaints=[
+      {id:this.id(),roomId:r3,title:'Fan not working',category:'Electrical',priority:'high',status:'open',date:new Date().toISOString().slice(0,10),notes:'Reported by Rahul'},
+      {id:this.id(),roomId:r1,title:'Water leakage in bathroom',category:'Plumbing',priority:'medium',status:'in-progress',date:new Date().toISOString().slice(0,10),notes:''},
+    ];
+  }
+};
+
+/* ============================ HELPERS ============================ */
+const $ = s => document.querySelector(s);
+const cur = () => Data.db.settings.currency || '₹';
+const money = n => cur() + Number(n||0).toLocaleString('en-IN');
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const thisMonth = () => new Date().toISOString().slice(0,7);
+const monthLabel = m => { if(!m) return '—'; const [y,mo]=m.split('-'); return new Date(y,mo-1).toLocaleDateString('en-IN',{month:'short',year:'numeric'}); };
+const fmtDate = d => d ? new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—';
+const roomById = id => Data.db.rooms.find(r=>r.id===id);
+const tenantById = id => Data.db.tenants.find(t=>t.id===id);
+const occupantsOf = rid => Data.db.tenants.filter(t=>t.roomId===rid && t.status==='active');
+const initials = n => (n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function toggleSidebar(open){ $('#sidebar').classList.toggle('open',open); $('#overlayBg').classList.toggle('open',open); }
+function toggleTheme(){ const h=document.documentElement; const next=h.dataset.theme==='dark'?'light':'dark'; h.dataset.theme=next; try{localStorage.setItem('pgTheme',next)}catch(e){} }
+
+/* ============================ NAVIGATION ============================ */
+const PAGES = [
+  {id:'dashboard', label:'Dashboard', icon:'📊'},
+  {id:'rooms',     label:'Rooms',     icon:'🚪', add:'Add Room'},
+  {id:'tenants',   label:'Tenants',   icon:'👥', add:'Add Tenant'},
+  {id:'payments',  label:'Rent & Payments', icon:'💰', add:'Record Payment'},
+  {id:'expenses',  label:'Expenses',  icon:'🧾', add:'Add Expense'},
+  {id:'inventory', label:'Inventory', icon:'📦', add:'Add Item'},
+  {id:'complaints',label:'Complaints', icon:'🛠️', add:'Log Complaint'},
+];
+let current = 'dashboard';
+
+function buildNav(){
+  const openC = Data.db.complaints.filter(c=>c.status!=='resolved').length;
+  const lowStock = Data.db.inventory.filter(i=>Number(i.quantity)<=Number(i.minQuantity)).length;
+  $('#nav').innerHTML = PAGES.map(p=>{
+    let badge='';
+    if(p.id==='complaints' && openC) badge=`<span class="badge">${openC}</span>`;
+    if(p.id==='inventory' && lowStock) badge=`<span class="badge">${lowStock}</span>`;
+    return `<a href="#${p.id}" class="${p.id===current?'active':''}" onclick="go('${p.id}')">
+      <span class="ic">${p.icon}</span><span>${p.label}</span>${badge}</a>`;
+  }).join('') + `<a href="#" onclick="Data.reset();return false" style="margin-top:8px"><span class="ic">♻️</span><span>Reset Data</span></a>`;
+}
+
+function go(id){ current=id; if(window.innerWidth<=768) toggleSidebar(false); render(); }
+
+function render(){
+  const p = PAGES.find(x=>x.id===current);
+  buildNav();
+  $('#pageTitle').textContent = p.label;
+  const act = $('#pageAction');
+  if(p.add){ act.style.display=''; act.textContent='+ '+p.add; } else act.style.display='none';
+  ({dashboard:renderDashboard, rooms:renderRooms, tenants:renderTenants, payments:renderPayments,
+    expenses:renderExpenses, inventory:renderInventory, complaints:renderComplaints}[current])();
+}
+function pageActionClick(){
+  ({rooms:()=>editRoom(), tenants:()=>editTenant(), payments:()=>editPayment(),
+    expenses:()=>editExpense(), inventory:()=>editItem(), complaints:()=>editComplaint()}[current] || (()=>{}))();
+}
+
+/* ============================ DASHBOARD ============================ */
+function renderDashboard(){
+  const d=Data.db;
+  const capacity=d.rooms.reduce((s,r)=>s+Number(r.capacity||0),0);
+  const activeTenants=d.tenants.filter(t=>t.status==='active').length;
+  const occRate=capacity? Math.round(activeTenants/capacity*100):0;
+  const m=thisMonth();
+  const monthPays=d.payments.filter(p=>p.month===m);
+  const collected=monthPays.filter(p=>p.status==='paid').reduce((s,p)=>s+Number(p.amount||0),0);
+  const pendingAmt=monthPays.filter(p=>p.status!=='paid').reduce((s,p)=>s+Number(p.amount||0),0);
+  const expThisMonth=d.expenses.filter(e=>(e.date||'').slice(0,7)===m).reduce((s,e)=>s+Number(e.amount||0),0);
+  const net=collected-expThisMonth;
+  const lowStock=d.inventory.filter(i=>Number(i.quantity)<=Number(i.minQuantity));
+  const openComplaints=d.complaints.filter(c=>c.status!=='resolved');
+  const pendingTenants=monthPays.filter(p=>p.status!=='paid').map(p=>tenantById(p.tenantId)).filter(Boolean);
+
+  $('#pageSub').textContent = d.settings.pgName + ' · ' + monthLabel(m);
+
+  const stat=(label,val,icon,bg,color,foot='')=>`<div class="card stat">
+    <div class="label"><span class="ic" style="background:${bg};color:${color}">${icon}</span>${label}</div>
+    <div class="val">${val}</div>${foot?`<div class="foot">${foot}</div>`:''}</div>`;
+
+  $('#view').innerHTML = `
+  <div class="grid stats">
+    ${stat('Occupancy', occRate+'%','🛏','var(--brand-soft)','var(--brand)',`<b>${activeTenants}</b> of ${capacity} beds filled`)}
+    ${stat('Collected ('+monthLabel(m)+')', money(collected),'💰','var(--green-soft)','var(--green)',pendingAmt?`<b class="amt-out">${money(pendingAmt)}</b> still pending`:'All rent collected ✓')}
+    ${stat('Expenses (this month)', money(expThisMonth),'🧾','var(--red-soft)','var(--red)',`${d.expenses.filter(e=>(e.date||'').slice(0,7)===m).length} entries`)}
+    ${stat('Net Balance', (net<0?'-':'')+money(Math.abs(net)),'📈',net<0?'var(--red-soft)':'var(--green-soft)',net<0?'var(--red)':'var(--green)','Collected − Expenses')}
+  </div>
+  <div class="grid stats">
+    ${stat('Rooms', d.rooms.length,'🚪','var(--blue-soft)','var(--blue)',`${d.rooms.filter(r=>occupantsOf(r.id).length>=r.capacity).length} full`)}
+    ${stat('Active Tenants', activeTenants,'👥','var(--brand-soft)','var(--brand)',`${d.tenants.length} total records`)}
+    ${stat('Low Stock Items', lowStock.length,'📦', lowStock.length?'var(--amber-soft)':'var(--surface-2)', lowStock.length?'var(--amber)':'var(--muted)','need restocking')}
+    ${stat('Open Complaints', openComplaints.length,'🛠️', openComplaints.length?'var(--amber-soft)':'var(--surface-2)', openComplaints.length?'var(--amber)':'var(--muted)','to be resolved')}
+  </div>
+
+  <div class="two-col">
+    <div class="card card-pad">
+      <div class="section-head"><h3>Rent status — ${monthLabel(m)}</h3><span class="spacer"></span>
+        <button class="btn btn-sm" onclick="go('payments')">View all</button></div>
+      ${d.tenants.filter(t=>t.status==='active').length===0? '<div class="muted">No active tenants yet.</div>' :
+        d.tenants.filter(t=>t.status==='active').map(t=>{
+          const pay=monthPays.find(p=>p.tenantId===t.id);
+          const paid=pay&&pay.status==='paid';
+          const rm=roomById(t.roomId);
+          return `<div class="list-item">
+            <div class="avatar">${initials(t.name)}</div>
+            <div style="flex:1;min-width:0"><div class="t-name">${esc(t.name)}</div>
+              <div class="t-sub">Room ${rm?esc(rm.number):'—'} · ${money(t.rent)}</div></div>
+            ${paid?`<span class="pill pill-green"><span class="dot"></span>Paid</span>`
+                  :`<button class="btn btn-sm btn-primary" onclick="markPaid('${t.id}')">Mark paid</button>`}
+          </div>`;
+        }).join('')}
+    </div>
+
+    <div class="card card-pad">
+      <div class="section-head"><h3>Needs attention</h3></div>
+      ${(lowStock.length===0 && openComplaints.length===0 && pendingTenants.length===0)
+        ? '<div class="muted" style="padding:8px 0">All clear! Nothing needs attention. 🎉</div>' : ''}
+      ${pendingTenants.map(t=>`<div class="list-item"><span class="pill pill-red">Rent due</span>
+        <div style="flex:1"><div class="t-name">${esc(t.name)}</div><div class="t-sub">${monthLabel(m)} rent pending</div></div></div>`).join('')}
+      ${lowStock.map(i=>`<div class="list-item"><span class="pill pill-amber">Low stock</span>
+        <div style="flex:1"><div class="t-name">${esc(i.name)}</div><div class="t-sub">${i.quantity} ${esc(i.unit)} left (min ${i.minQuantity})</div></div></div>`).join('')}
+      ${openComplaints.map(c=>{const rm=roomById(c.roomId);return `<div class="list-item"><span class="pill ${c.priority==='high'?'pill-red':'pill-amber'}">${c.priority}</span>
+        <div style="flex:1"><div class="t-name">${esc(c.title)}</div><div class="t-sub">Room ${rm?esc(rm.number):'—'} · ${esc(c.status)}</div></div></div>`;}).join('')}
+    </div>
+  </div>`;
+}
+
+function markPaid(tid){
+  const t=tenantById(tid); const m=thisMonth();
+  let pay=Data.db.payments.find(p=>p.tenantId===tid && p.month===m);
+  if(pay){ pay.status='paid'; pay.date=new Date().toISOString().slice(0,10); if(!pay.mode)pay.mode='Cash'; }
+  else Data.db.payments.push({id:Data.id(),tenantId:tid,month:m,amount:t.rent,date:new Date().toISOString().slice(0,10),mode:'Cash',status:'paid'});
+  Data.save(); render(); toast(esc(t.name)+' marked paid');
+}
+
+/* ============================ ROOMS ============================ */
+function renderRooms(){
+  const d=Data.db;
+  $('#pageSub').textContent = `${d.rooms.length} rooms · ${d.rooms.reduce((s,r)=>s+Number(r.capacity||0),0)} total beds`;
+  if(!d.rooms.length){ $('#view').innerHTML=emptyState('🚪','No rooms yet','Add your first room to start tracking occupancy.','Add Room','editRoom()'); return; }
+  $('#view').innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Room</th><th>Type</th><th>Occupancy</th><th>Rent / bed</th><th>Notes</th><th></th></tr></thead>
+    <tbody>${d.rooms.slice().sort((a,b)=>a.number.localeCompare(b.number,undefined,{numeric:true})).map(r=>{
+      const occ=occupantsOf(r.id); const full=occ.length>=r.capacity;
+      const pill=occ.length===0?'pill-gray':full?'pill-green':'pill-amber';
+      const status=occ.length===0?'Vacant':full?'Full':occ.length+'/'+r.capacity;
+      return `<tr>
+        <td><div class="t-name">Room ${esc(r.number)}</div><div class="t-sub">Floor ${esc(r.floor||'—')}</div></td>
+        <td>${esc(r.type||'—')}</td>
+        <td><span class="pill ${pill}">${status}</span>${occ.length?`<div class="t-sub" style="margin-top:4px">${occ.map(t=>esc(t.name)).join(', ')}</div>`:''}</td>
+        <td>${money(r.rent)}</td>
+        <td class="t-sub">${esc(r.notes||'—')}</td>
+        <td><div class="row-actions">
+          <button class="btn-icon" title="Edit" onclick="editRoom('${r.id}')">✎</button>
+          <button class="btn-icon btn-danger" title="Delete" onclick="delRoom('${r.id}')">🗑</button>
+        </div></td></tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+function editRoom(id){
+  const r=id?roomById(id):{}; openModal(id?'Edit Room':'Add Room',`
+    <div class="field half"><label>Room number *</label><input id="f_number" value="${esc(r.number||'')}" placeholder="101"></div>
+    <div class="field half"><label>Floor</label><input id="f_floor" value="${esc(r.floor||'')}" placeholder="1"></div>
+    <div class="field half"><label>Type</label><select id="f_type">
+      ${['Single','Double Sharing','Triple Sharing','Four Sharing','Dormitory'].map(o=>`<option ${r.type===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="field half"><label>Capacity (beds)</label><input id="f_capacity" type="number" min="1" value="${r.capacity||1}"></div>
+    <div class="field"><label>Rent per bed (${cur()})</label><input id="f_rent" type="number" min="0" value="${r.rent||''}" placeholder="6500"></div>
+    <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="AC / balcony / attached bathroom...">${esc(r.notes||'')}</textarea></div>
+  `, ()=>{
+    const number=$('#f_number').value.trim(); if(!number) return toast('Room number is required');
+    const obj={number,floor:$('#f_floor').value.trim(),type:$('#f_type').value,
+      capacity:Number($('#f_capacity').value)||1,rent:Number($('#f_rent').value)||0,notes:$('#f_notes').value.trim()};
+    if(id) Object.assign(roomById(id),obj); else Data.db.rooms.push({id:Data.id(),...obj});
+    Data.save(); render(); toast(id?'Room updated':'Room added'); return true;
+  });
+}
+function delRoom(id){
+  if(occupantsOf(id).length) return toast('⚠ Move out tenants before deleting this room');
+  if(!confirm('Delete this room?')) return;
+  Data.db.rooms=Data.db.rooms.filter(r=>r.id!==id); Data.save(); render(); toast('Room deleted');
+}
+
+/* ============================ TENANTS ============================ */
+let tenantFilter='';
+function renderTenants(){
+  const d=Data.db;
+  $('#pageSub').textContent = `${d.tenants.filter(t=>t.status==='active').length} active · ${d.tenants.length} total`;
+  if(!d.tenants.length){ $('#view').innerHTML=emptyState('👥','No tenants yet','Add tenants and assign them to rooms.','Add Tenant','editTenant()'); return; }
+  const list=d.tenants.filter(t=>!tenantFilter || (t.name+t.phone).toLowerCase().includes(tenantFilter.toLowerCase()));
+  $('#view').innerHTML = `
+    <div class="toolbar">
+      <div class="search"><span class="si">🔍</span><input placeholder="Search tenants..." value="${esc(tenantFilter)}" oninput="tenantFilter=this.value;renderTenants()"></div>
+    </div>
+    <div class="table-wrap"><table>
+    <thead><tr><th>Tenant</th><th>Room</th><th>Rent</th><th>Deposit</th><th>Joined</th><th>Status</th><th></th></tr></thead>
+    <tbody>${list.map(t=>{const rm=roomById(t.roomId);
+      return `<tr>
+        <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">${initials(t.name)}</div>
+          <div><div class="t-name">${esc(t.name)}</div><div class="t-sub">${esc(t.phone||'—')}</div></div></div></td>
+        <td>${rm?'Room '+esc(rm.number):'<span class="muted">Unassigned</span>'}</td>
+        <td>${money(t.rent)}</td>
+        <td>${money(t.deposit)}</td>
+        <td class="t-sub">${fmtDate(t.joinDate)}</td>
+        <td><span class="pill ${t.status==='active'?'pill-green':'pill-gray'}">${esc(t.status)}</span></td>
+        <td><div class="row-actions">
+          <button class="btn-icon" title="Edit" onclick="editTenant('${t.id}')">✎</button>
+          <button class="btn-icon btn-danger" title="Delete" onclick="delTenant('${t.id}')">🗑</button>
+        </div></td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="muted" style="text-align:center;padding:30px">No matches.</td></tr>`}</tbody></table></div>`;
+}
+function editTenant(id){
+  const t=id?tenantById(id):{status:'active'};
+  const roomOpts=Data.db.rooms.slice().sort((a,b)=>a.number.localeCompare(b.number,undefined,{numeric:true})).map(r=>{
+    const occ=occupantsOf(r.id).length; const full=occ>=r.capacity && t.roomId!==r.id;
+    return `<option value="${r.id}" ${t.roomId===r.id?'selected':''} ${full?'disabled':''}>Room ${esc(r.number)} — ${esc(r.type)} (${occ}/${r.capacity}${full?' full':''})</option>`;
+  }).join('');
+  openModal(id?'Edit Tenant':'Add Tenant',`
+    <div class="field half"><label>Full name *</label><input id="f_name" value="${esc(t.name||'')}" placeholder="Amit Sharma"></div>
+    <div class="field half"><label>Phone</label><input id="f_phone" value="${esc(t.phone||'')}" placeholder="9876543210"></div>
+    <div class="field"><label>Room</label><select id="f_room"><option value="">— Unassigned —</option>${roomOpts}</select>
+      <div class="hint">Rent auto-fills from room; you can override below.</div></div>
+    <div class="field half"><label>Monthly rent (${cur()})</label><input id="f_rent" type="number" value="${t.rent||''}"></div>
+    <div class="field half"><label>Deposit (${cur()})</label><input id="f_deposit" type="number" value="${t.deposit||''}"></div>
+    <div class="field half"><label>Join date</label><input id="f_join" type="date" value="${esc(t.joinDate||new Date().toISOString().slice(0,10))}"></div>
+    <div class="field half"><label>Status</label><select id="f_status">
+      ${['active','notice period','moved out'].map(o=>`<option ${t.status===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="field half"><label>ID proof</label><input id="f_id" value="${esc(t.idProof||'')}" placeholder="Aadhaar"></div>
+    <div class="field"><label>Notes</label><textarea id="f_notes">${esc(t.notes||'')}</textarea></div>
+  `, ()=>{
+    const name=$('#f_name').value.trim(); if(!name) return toast('Name is required');
+    const obj={name,phone:$('#f_phone').value.trim(),roomId:$('#f_room').value,
+      rent:Number($('#f_rent').value)||0,deposit:Number($('#f_deposit').value)||0,
+      joinDate:$('#f_join').value,status:$('#f_status').value,idProof:$('#f_id').value.trim(),notes:$('#f_notes').value.trim()};
+    if(id) Object.assign(tenantById(id),obj); else Data.db.tenants.push({id:Data.id(),...obj});
+    Data.save(); render(); toast(id?'Tenant updated':'Tenant added'); return true;
+  });
+  // auto-fill rent from room
+  setTimeout(()=>{ const sel=$('#f_room'); if(sel) sel.addEventListener('change',()=>{ const r=roomById(sel.value); if(r && !$('#f_rent').value) $('#f_rent').value=r.rent; }); },0);
+}
+function delTenant(id){ if(!confirm('Delete this tenant and their payment records?')) return;
+  Data.db.tenants=Data.db.tenants.filter(t=>t.id!==id);
+  Data.db.payments=Data.db.payments.filter(p=>p.tenantId!==id);
+  Data.save(); render(); toast('Tenant deleted'); }
+
+/* ============================ PAYMENTS ============================ */
+let payMonth=thisMonth();
+function renderPayments(){
+  const d=Data.db;
+  // months present + this month
+  const months=[...new Set([thisMonth(), ...d.payments.map(p=>p.month)])].filter(Boolean).sort().reverse();
+  const active=d.tenants.filter(t=>t.status==='active');
+  // ensure a row concept per active tenant for selected month
+  const rows=active.map(t=>{
+    const pay=d.payments.find(p=>p.tenantId===t.id && p.month===payMonth);
+    return {t, pay};
+  });
+  const collected=rows.filter(r=>r.pay&&r.pay.status==='paid').reduce((s,r)=>s+Number(r.pay.amount||0),0);
+  const expected=rows.reduce((s,r)=>s+Number((r.pay&&r.pay.amount)||r.t.rent||0),0);
+  $('#pageSub').textContent = `${monthLabel(payMonth)} · ${money(collected)} of ${money(expected)} collected`;
+
+  $('#view').innerHTML=`
+    <div class="toolbar">
+      <select class="filter-sel" onchange="payMonth=this.value;renderPayments()">
+        ${months.map(m=>`<option value="${m}" ${m===payMonth?'selected':''}>${monthLabel(m)}</option>`).join('')}
+      </select>
+      <span class="spacer" style="flex:1"></span>
+      <span class="pill pill-green" style="padding:7px 12px">Collected ${money(collected)}</span>
+      <span class="pill pill-red" style="padding:7px 12px">Pending ${money(expected-collected)}</span>
+    </div>
+    ${active.length===0? emptyState('💰','No active tenants','Add tenants to track their rent.','Add Tenant',"go('tenants')") : `
+    <div class="table-wrap"><table>
+    <thead><tr><th>Tenant</th><th>Room</th><th>Amount</th><th>Status</th><th>Paid on</th><th>Mode</th><th></th></tr></thead>
+    <tbody>${rows.map(({t,pay})=>{const rm=roomById(t.roomId); const paid=pay&&pay.status==='paid';
+      return `<tr>
+        <td><div class="t-name">${esc(t.name)}</div></td>
+        <td class="t-sub">${rm?'Room '+esc(rm.number):'—'}</td>
+        <td>${money((pay&&pay.amount)||t.rent)}</td>
+        <td><span class="pill ${paid?'pill-green':'pill-red'}"><span class="dot"></span>${paid?'Paid':'Pending'}</span></td>
+        <td class="t-sub">${paid?fmtDate(pay.date):'—'}</td>
+        <td class="t-sub">${paid?esc(pay.mode||'—'):'—'}</td>
+        <td><div class="row-actions">
+          ${paid?`<button class="btn-icon" title="Edit" onclick="editPayment('${t.id}')">✎</button>
+                  <button class="btn-icon btn-danger" title="Mark unpaid" onclick="unpay('${t.id}')">↩</button>`
+                :`<button class="btn btn-sm btn-primary" onclick="editPayment('${t.id}')">Record</button>`}
+        </div></td></tr>`;
+    }).join('')}</tbody></table></div>`}`;
+}
+function editPayment(tid){
+  const t=tenantById(tid) || Data.db.tenants.find(x=>x.status==='active');
+  if(!t) return toast('Add a tenant first');
+  const pay=Data.db.payments.find(p=>p.tenantId===t.id && p.month===payMonth);
+  const tenantOpts=Data.db.tenants.filter(x=>x.status==='active').map(x=>`<option value="${x.id}" ${x.id===t.id?'selected':''}>${esc(x.name)}</option>`).join('');
+  openModal('Record Payment',`
+    <div class="field"><label>Tenant</label><select id="f_tenant" onchange="(function(s){var t=Data.db.tenants.find(x=>x.id===s.value);if(t&&document.getElementById('f_amount'))document.getElementById('f_amount').value=t.rent;})(this)">${tenantOpts}</select></div>
+    <div class="field half"><label>Month</label><input id="f_month" type="month" value="${esc(payMonth)}"></div>
+    <div class="field half"><label>Amount (${cur()})</label><input id="f_amount" type="number" value="${(pay&&pay.amount)||t.rent||''}"></div>
+    <div class="field half"><label>Paid on</label><input id="f_date" type="date" value="${esc((pay&&pay.date)||new Date().toISOString().slice(0,10))}"></div>
+    <div class="field half"><label>Mode</label><select id="f_mode">
+      ${['Cash','UPI','Bank Transfer','Cheque','Card'].map(o=>`<option ${pay&&pay.mode===o?'selected':''}>${o}</option>`).join('')}</select></div>
+  `, ()=>{
+    const tenantId=$('#f_tenant').value, month=$('#f_month').value;
+    const obj={tenantId,month,amount:Number($('#f_amount').value)||0,date:$('#f_date').value,mode:$('#f_mode').value,status:'paid'};
+    const existing=Data.db.payments.find(p=>p.tenantId===tenantId && p.month===month);
+    if(existing) Object.assign(existing,obj); else Data.db.payments.push({id:Data.id(),...obj});
+    Data.save(); render(); toast('Payment recorded'); return true;
+  });
+}
+function unpay(tid){ const p=Data.db.payments.find(x=>x.tenantId===tid && x.month===payMonth);
+  if(p){ p.status='pending'; p.date=''; p.mode=''; Data.save(); render(); toast('Marked pending'); } }
+
+/* ============================ EXPENSES ============================ */
+let expMonth='all';
+const EXP_CATS=['Groceries','Utilities','Salary','Maintenance','Rent/Lease','Internet','Supplies','Other'];
+function renderExpenses(){
+  const d=Data.db;
+  const months=[...new Set(d.expenses.map(e=>(e.date||'').slice(0,7)))].filter(Boolean).sort().reverse();
+  let list=d.expenses.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(expMonth!=='all') list=list.filter(e=>(e.date||'').slice(0,7)===expMonth);
+  const total=list.reduce((s,e)=>s+Number(e.amount||0),0);
+  // by category
+  const byCat={}; list.forEach(e=>byCat[e.category]=(byCat[e.category]||0)+Number(e.amount||0));
+  $('#pageSub').textContent = `${list.length} entries · ${money(total)} total`;
+
+  if(!d.expenses.length){ $('#view').innerHTML=emptyState('🧾','No expenses logged','Track groceries, utilities, salaries and more.','Add Expense','editExpense()'); return; }
+  $('#view').innerHTML=`
+    <div class="toolbar">
+      <select class="filter-sel" onchange="expMonth=this.value;renderExpenses()">
+        <option value="all" ${expMonth==='all'?'selected':''}>All months</option>
+        ${months.map(m=>`<option value="${m}" ${m===expMonth?'selected':''}>${monthLabel(m)}</option>`).join('')}
+      </select>
+      <span style="flex:1"></span>
+      <span class="pill pill-red" style="padding:7px 12px">Total ${money(total)}</span>
+    </div>
+    <div class="two-col">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+        <tbody>${list.map(e=>`<tr>
+          <td class="t-sub">${fmtDate(e.date)}</td>
+          <td><span class="pill pill-blue">${esc(e.category)}</span></td>
+          <td>${esc(e.description||'—')}</td>
+          <td style="text-align:right" class="amt-out">${money(e.amount)}</td>
+          <td><div class="row-actions">
+            <button class="btn-icon" onclick="editExpense('${e.id}')">✎</button>
+            <button class="btn-icon btn-danger" onclick="delExpense('${e.id}')">🗑</button></div></td>
+        </tr>`).join('') || `<tr><td colspan="5" class="muted" style="text-align:center;padding:26px">No expenses this month.</td></tr>`}</tbody></table></div>
+      <div class="card card-pad">
+        <div class="card-title">Breakdown by category</div>
+        ${Object.keys(byCat).length===0?'<div class="muted">—</div>':
+          Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`
+          <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px">
+            <span>${esc(c)}</span><b>${money(v)}</b></div>
+            <div class="bar"><span style="width:${total?Math.round(v/total*100):0}%"></span></div></div>`).join('')}
+      </div>
+    </div>`;
+}
+function editExpense(id){
+  const e=id?Data.db.expenses.find(x=>x.id===id):{date:new Date().toISOString().slice(0,10),category:'Groceries'};
+  openModal(id?'Edit Expense':'Add Expense',`
+    <div class="field half"><label>Date</label><input id="f_date" type="date" value="${esc(e.date||'')}"></div>
+    <div class="field half"><label>Category</label><select id="f_category">
+      ${EXP_CATS.map(o=>`<option ${e.category===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="field"><label>Amount (${cur()}) *</label><input id="f_amount" type="number" min="0" value="${e.amount||''}" placeholder="5000"></div>
+    <div class="field"><label>Description</label><input id="f_desc" value="${esc(e.description||'')}" placeholder="Electricity bill for August"></div>
+  `, ()=>{
+    const amount=Number($('#f_amount').value); if(!amount) return toast('Amount is required');
+    const obj={date:$('#f_date').value,category:$('#f_category').value,amount,description:$('#f_desc').value.trim()};
+    if(id) Object.assign(Data.db.expenses.find(x=>x.id===id),obj); else Data.db.expenses.push({id:Data.id(),...obj});
+    Data.save(); render(); toast(id?'Expense updated':'Expense added'); return true;
+  });
+}
+function delExpense(id){ if(!confirm('Delete this expense?')) return; Data.db.expenses=Data.db.expenses.filter(e=>e.id!==id); Data.save(); render(); toast('Expense deleted'); }
+
+/* ============================ INVENTORY ============================ */
+const INV_CATS=['Grocery','Cleaning','Linen','Utility','Furniture','Electrical','Kitchen','Other'];
+function renderInventory(){
+  const d=Data.db;
+  const low=d.inventory.filter(i=>Number(i.quantity)<=Number(i.minQuantity));
+  $('#pageSub').textContent = `${d.inventory.length} items · ${low.length} low on stock`;
+  if(!d.inventory.length){ $('#view').innerHTML=emptyState('📦','No inventory items','Track groceries, linen, cleaning supplies and more.','Add Item','editItem()'); return; }
+  $('#view').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>Item</th><th>Category</th><th>In stock</th><th>Min</th><th>Status</th><th></th></tr></thead>
+    <tbody>${d.inventory.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(i=>{
+      const isLow=Number(i.quantity)<=Number(i.minQuantity);
+      return `<tr>
+        <td><div class="t-name">${esc(i.name)}</div>${i.notes?`<div class="t-sub">${esc(i.notes)}</div>`:''}</td>
+        <td><span class="pill pill-blue">${esc(i.category)}</span></td>
+        <td><div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-icon" onclick="adjStock('${i.id}',-1)">−</button>
+          <b>${i.quantity}</b> <span class="t-sub">${esc(i.unit)}</span>
+          <button class="btn-icon" onclick="adjStock('${i.id}',1)">+</button></div></td>
+        <td class="t-sub">${i.minQuantity} ${esc(i.unit)}</td>
+        <td><span class="pill ${isLow?'pill-amber':'pill-green'}">${isLow?'Low — restock':'OK'}</span></td>
+        <td><div class="row-actions">
+          <button class="btn-icon" onclick="editItem('${i.id}')">✎</button>
+          <button class="btn-icon btn-danger" onclick="delItem('${i.id}')">🗑</button></div></td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+function adjStock(id,delta){ const i=Data.db.inventory.find(x=>x.id===id); i.quantity=Math.max(0,Number(i.quantity)+delta); Data.save(); renderInventory(); buildNav(); }
+function editItem(id){
+  const i=id?Data.db.inventory.find(x=>x.id===id):{unit:'pcs',category:'Grocery',quantity:0,minQuantity:0};
+  openModal(id?'Edit Item':'Add Item',`
+    <div class="field"><label>Item name *</label><input id="f_name" value="${esc(i.name||'')}" placeholder="Rice"></div>
+    <div class="field half"><label>Category</label><select id="f_category">
+      ${INV_CATS.map(o=>`<option ${i.category===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="field half"><label>Unit</label><input id="f_unit" value="${esc(i.unit||'')}" placeholder="kg / pcs / litres"></div>
+    <div class="field half"><label>Quantity in stock</label><input id="f_qty" type="number" min="0" value="${i.quantity||0}"></div>
+    <div class="field half"><label>Min. level (alert)</label><input id="f_min" type="number" min="0" value="${i.minQuantity||0}"></div>
+    <div class="field"><label>Notes</label><input id="f_notes" value="${esc(i.notes||'')}"></div>
+  `, ()=>{
+    const name=$('#f_name').value.trim(); if(!name) return toast('Item name is required');
+    const obj={name,category:$('#f_category').value,unit:$('#f_unit').value.trim()||'pcs',
+      quantity:Number($('#f_qty').value)||0,minQuantity:Number($('#f_min').value)||0,notes:$('#f_notes').value.trim()};
+    if(id) Object.assign(Data.db.inventory.find(x=>x.id===id),obj); else Data.db.inventory.push({id:Data.id(),...obj});
+    Data.save(); render(); toast(id?'Item updated':'Item added'); return true;
+  });
+}
+function delItem(id){ if(!confirm('Delete this item?')) return; Data.db.inventory=Data.db.inventory.filter(i=>i.id!==id); Data.save(); render(); toast('Item deleted'); }
+
+/* ============================ COMPLAINTS ============================ */
+let compFilter='all';
+function renderComplaints(){
+  const d=Data.db;
+  const open=d.complaints.filter(c=>c.status!=='resolved').length;
+  $('#pageSub').textContent = `${open} open · ${d.complaints.length} total`;
+  if(!d.complaints.length){ $('#view').innerHTML=emptyState('🛠️','No complaints logged','Track maintenance requests and issues raised by tenants.','Log Complaint','editComplaint()'); return; }
+  let list=d.complaints.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(compFilter!=='all') list=list.filter(c=>c.status===compFilter);
+  $('#view').innerHTML=`
+    <div class="toolbar">
+      ${['all','open','in-progress','resolved'].map(f=>`<button class="btn btn-sm ${compFilter===f?'btn-primary':''}" onclick="compFilter='${f}';renderComplaints()">${f==='all'?'All':f}</button>`).join('')}
+    </div>
+    <div class="table-wrap"><table>
+    <thead><tr><th>Issue</th><th>Room</th><th>Category</th><th>Priority</th><th>Date</th><th>Status</th><th></th></tr></thead>
+    <tbody>${list.map(c=>{const rm=roomById(c.roomId);
+      const pp=c.priority==='high'?'pill-red':c.priority==='medium'?'pill-amber':'pill-gray';
+      const sp=c.status==='resolved'?'pill-green':c.status==='in-progress'?'pill-blue':'pill-amber';
+      return `<tr>
+        <td><div class="t-name">${esc(c.title)}</div>${c.notes?`<div class="t-sub">${esc(c.notes)}</div>`:''}</td>
+        <td class="t-sub">${rm?'Room '+esc(rm.number):'General'}</td>
+        <td>${esc(c.category||'—')}</td>
+        <td><span class="pill ${pp}">${esc(c.priority)}</span></td>
+        <td class="t-sub">${fmtDate(c.date)}</td>
+        <td><select class="filter-sel" style="padding:5px 8px;font-size:12px" onchange="setComplaintStatus('${c.id}',this.value)">
+          ${['open','in-progress','resolved'].map(s=>`<option ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
+        <td><div class="row-actions">
+          <button class="btn-icon" onclick="editComplaint('${c.id}')">✎</button>
+          <button class="btn-icon btn-danger" onclick="delComplaint('${c.id}')">🗑</button></div></td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="7" class="muted" style="text-align:center;padding:26px">Nothing here.</td></tr>`}</tbody></table></div>`;
+}
+function setComplaintStatus(id,s){ Data.db.complaints.find(c=>c.id===id).status=s; Data.save(); render(); toast('Status: '+s); }
+function editComplaint(id){
+  const c=id?Data.db.complaints.find(x=>x.id===id):{date:new Date().toISOString().slice(0,10),priority:'medium',status:'open'};
+  const roomOpts=Data.db.rooms.slice().sort((a,b)=>a.number.localeCompare(b.number,undefined,{numeric:true}))
+    .map(r=>`<option value="${r.id}" ${c.roomId===r.id?'selected':''}>Room ${esc(r.number)}</option>`).join('');
+  openModal(id?'Edit Complaint':'Log Complaint',`
+    <div class="field"><label>Issue title *</label><input id="f_title" value="${esc(c.title||'')}" placeholder="Fan not working"></div>
+    <div class="field half"><label>Room</label><select id="f_room"><option value="">General / Common area</option>${roomOpts}</select></div>
+    <div class="field half"><label>Category</label><select id="f_category">
+      ${['Electrical','Plumbing','Furniture','Cleaning','Internet','Appliance','Other'].map(o=>`<option ${c.category===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="field half"><label>Priority</label><select id="f_priority">
+      ${['low','medium','high'].map(o=>`<option ${c.priority===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="field half"><label>Status</label><select id="f_status">
+      ${['open','in-progress','resolved'].map(o=>`<option ${c.status===o?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="field half"><label>Date</label><input id="f_date" type="date" value="${esc(c.date||'')}"></div>
+    <div class="field"><label>Notes</label><textarea id="f_notes">${esc(c.notes||'')}</textarea></div>
+  `, ()=>{
+    const title=$('#f_title').value.trim(); if(!title) return toast('Title is required');
+    const obj={title,roomId:$('#f_room').value,category:$('#f_category').value,priority:$('#f_priority').value,
+      status:$('#f_status').value,date:$('#f_date').value,notes:$('#f_notes').value.trim()};
+    if(id) Object.assign(Data.db.complaints.find(x=>x.id===id),obj); else Data.db.complaints.push({id:Data.id(),...obj});
+    Data.save(); render(); toast(id?'Complaint updated':'Complaint logged'); return true;
+  });
+}
+function delComplaint(id){ if(!confirm('Delete this complaint?')) return; Data.db.complaints=Data.db.complaints.filter(c=>c.id!==id); Data.save(); render(); toast('Deleted'); }
+
+/* ============================ MODAL & UTIL ============================ */
+let _saveCb=null;
+function openModal(title,bodyHTML,onSave){ $('#modalTitle').textContent=title; $('#modalBody').innerHTML=bodyHTML; _saveCb=onSave; $('#overlay').classList.add('open');
+  setTimeout(()=>{ const f=$('#modalBody input,#modalBody select,#modalBody textarea'); if(f)f.focus(); },30); }
+function closeModal(){ $('#overlay').classList.remove('open'); _saveCb=null; }
+function saveModal(){ if(_saveCb && _saveCb()!==false) closeModal(); }
+function emptyState(em,title,text,btn,fn){ return `<div class="card"><div class="empty"><div class="em">${em}</div>
+  <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">${title}</div><p>${text}</p>
+  <button class="btn btn-primary" onclick="${fn}">+ ${btn}</button></div></div>`; }
+
+$('#overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ============================ INIT ============================ */
+(function init(){
+  try{ const th=localStorage.getItem('pgTheme'); if(th) document.documentElement.dataset.theme=th;
+    else if(window.matchMedia && matchMedia('(prefers-color-scheme:dark)').matches) document.documentElement.dataset.theme='dark';
+  }catch(e){}
+  Data.load();
+  if(location.hash){ const h=location.hash.slice(1); if(PAGES.find(p=>p.id===h)) current=h; }
+  render();
+})();
+</script>
+</body>
+</html>
