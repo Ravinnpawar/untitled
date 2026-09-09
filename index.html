@@ -225,10 +225,19 @@ const Data = {
   reset(){ if(confirm('Erase ALL data and reload sample data? This cannot be undone.')){ this.db=JSON.parse(JSON.stringify(DEFAULT)); this.seed(); this.save(); render(); toast('Data reset'); } },
   id(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); },
 
-  exportJSON(){
-    const blob = new Blob([JSON.stringify(this.db,null,2)], {type:'application/json'});
+  async exportJSON(){
+    const json=JSON.stringify(this.db,null,2);
+    const filename='pg-manager-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    let dl=null;
+    try{ if(window.claude && claude.use) dl=await claude.use('downloads'); }catch(e){}
+    if(dl){ // hosted artifact: sandbox blocks plain download links, save via capability
+      try{ await dl.save({filename,data:json}); toast('Backup saved'); }
+      catch(e){ toast('Backup cancelled'); }
+      return;
+    }
+    const blob = new Blob([json], {type:'application/json'}); // standalone file
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download='pg-manager-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+    a.download=filename; a.click();
     URL.revokeObjectURL(a.href); toast('Backup downloaded');
   },
   importJSON(input){
