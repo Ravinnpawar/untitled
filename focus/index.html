@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d9488">
+<title>FOCUS – Study App</title>
+<style>
+  :root{
+    --bg:#f3f6f6; --surface:#ffffff; --surface-2:#f6f9f9; --border:#e1e8e8;
+    --text:#14222a; --muted:#64757d; --brand:#0d9488; --brand-soft:#e2f5f2;
+    --green:#15924f; --green-soft:#e5f5ec; --amber:#c27c00; --amber-soft:#fdf3df;
+    --red:#d1434b; --red-soft:#fbe9ea; --violet:#7c3aed; --violet-soft:#f0e9fe;
+    --shadow:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.1);
+    --radius:14px;
+  }
+  [data-theme="dark"]{
+    --bg:#0d1517; --surface:#162124; --surface-2:#121b1e; --border:#273539;
+    --text:#e5eef0; --muted:#93a5ab; --brand:#2dd4bf; --brand-soft:#123532;
+    --green:#3ecf8e; --green-soft:#12301f; --amber:#e8a838; --amber-soft:#332512;
+    --red:#f2777a; --red-soft:#361a1c; --violet:#a78bfa; --violet-soft:#261c42;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Devanagari",Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:14px}
+  .mr{color:var(--muted);font-weight:500}
+
+  /* Header + tabs */
+  header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
+  .head-row{display:flex;align-items:center;gap:12px;padding:12px 16px;max-width:960px;margin:0 auto}
+  .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0d9488,#2dd4bf);
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:17px;flex:none}
+  .head-row h1{font-size:17px;font-weight:800;letter-spacing:.5px}
+  .head-row small{display:block;font-size:11px;color:var(--muted);font-weight:500;letter-spacing:0}
+  .head-row .spacer{flex:1}
+  .icon-btn{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:9px;
+    width:36px;height:36px;font-size:16px;display:grid;place-items:center;flex:none}
+  @media (max-width:480px){ .head-row small{display:none} }
+  .mini-timer{font-variant-numeric:tabular-nums;font-weight:700;color:var(--brand);background:var(--brand-soft);
+    padding:6px 10px;border-radius:9px;font-size:13px;display:none;border:none;flex:none;white-space:nowrap}
+  .mini-timer.on{display:block}
+  .tabs{display:flex;gap:4px;overflow-x:auto;padding:0 12px;max-width:960px;margin:0 auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{flex:none;padding:10px 12px 11px;color:var(--muted);text-decoration:none;font-weight:600;font-size:13px;
+    border-bottom:2.5px solid transparent;white-space:nowrap}
+  .tabs a.active{color:var(--brand);border-bottom-color:var(--brand)}
+  .tabs a:hover{color:var(--text)}
+
+  main{max-width:960px;margin:0 auto;padding:20px 16px 60px}
+  .page{display:none}
+  .page.active{display:block}
+  .page-title{font-size:20px;font-weight:800;letter-spacing:-.3px}
+  .page-sub{color:var(--muted);font-size:13px;margin:2px 0 18px}
+
+  /* Cards & grid */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+  .card h3{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .card h3 .r{margin-left:auto}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  @media (max-width:760px){ .g4{grid-template-columns:repeat(2,minmax(0,1fr))} .g2{grid-template-columns:1fr} }
+  .stack>*+*{margin-top:14px}
+
+  .stat .lbl{font-size:12px;color:var(--muted);font-weight:600}
+  .stat .val{font-size:26px;font-weight:800;letter-spacing:-.5px;margin-top:2px;font-variant-numeric:tabular-nums}
+  .stat .val small{font-size:13px;color:var(--muted);font-weight:600}
+  .stat .hint{font-size:12px;color:var(--muted);margin-top:2px}
+  .bar{height:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:8px}
+  .bar>i{display:block;height:100%;border-radius:20px;background:var(--brand);transition:width .3s}
+  .bar.warn>i{background:var(--amber)} .bar.bad>i{background:var(--red)} .bar.good>i{background:var(--green)}
+
+  /* Buttons & forms */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 15px;border-radius:10px;
+    border:1px solid var(--border);background:var(--surface);color:var(--text);font-weight:600;font-size:13px}
+  .btn:hover{border-color:var(--brand)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  [data-theme="dark"] .btn.primary{color:#062521}
+  .btn.danger{color:var(--red)}
+  .btn.lg{padding:13px 22px;font-size:15px;border-radius:12px}
+  .btn.sm{padding:6px 10px;font-size:12px}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+  label.f{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
+  .input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);color:var(--text)}
+  .input:focus{outline:2px solid var(--brand-soft);border-color:var(--brand)}
+  .fields{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media (max-width:560px){ .fields{grid-template-columns:1fr} }
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:8px 13px;border-radius:20px;border:1px solid var(--border);background:var(--surface-2);font-weight:600;font-size:13px;color:var(--text)}
+  .chip.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
+
+  /* Timer */
+  .timer-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;padding:10px 0}
+  .ring{position:relative;width:250px;height:250px;max-width:72vw;max-height:72vw}
+  .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .ring circle{fill:none;stroke-width:10}
+  .ring .track{stroke:var(--surface-2)}
+  .ring .prog{stroke:var(--brand);stroke-linecap:round;transition:stroke-dashoffset .5s linear}
+  .ring.break .prog{stroke:var(--violet)}
+  .ring .center{position:absolute;inset:0;display:grid;place-content:center}
+  .ring .time{font-size:52px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+  .ring .mode{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .quote{color:var(--muted);font-style:italic;margin:14px 0 4px;min-height:21px;max-width:420px}
+
+  /* Lists / tables */
+  .list{list-style:none}
+  .list li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .list li:last-child{border-bottom:none}
+  .list .meta{font-size:12px;color:var(--muted)}
+  .list .grow{flex:1;min-width:0}
+  .pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap}
+  .pill.g{background:var(--green-soft);color:var(--green)} .pill.a{background:var(--amber-soft);color:var(--amber)}
+  .pill.r{background:var(--red-soft);color:var(--red)} .pill.b{background:var(--brand-soft);color:var(--brand)}
+  .pill.v{background:var(--violet-soft);color:var(--violet)}
+  .x{background:none;border:none;color:var(--muted);font-size:16px;padding:2px 6px;border-radius:6px}
+  .x:hover{color:var(--red);background:var(--red-soft)}
+  .empty{color:var(--muted);text-align:center;padding:22px 8px;font-size:13px}
+
+  /* Week chart */
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:170px;margin-top:6px}
+  .day{display:flex;flex-direction:column;align-items:center;height:100%}
+  .day .bars{flex:1;display:flex;gap:3px;align-items:flex-end;width:100%;justify-content:center}
+  .day .bars i{width:42%;max-width:18px;border-radius:5px 5px 2px 2px;min-height:2px}
+  .day .bars i.s{background:var(--brand)} .day .bars i.rl{background:var(--amber)}
+  .day .d{font-size:11px;color:var(--muted);font-weight:600;margin-top:6px}
+  .day.today .d{color:var(--text)}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:10px}
+  .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .legend .s::before{background:var(--brand)} .legend .rl::before{background:var(--amber)}
+
+  /* Banner */
+  .banner{border-radius:var(--radius);padding:14px 16px;display:flex;gap:12px;align-items:flex-start;font-size:13px}
+  .banner b{display:block;font-size:14px;margin-bottom:1px}
+  .banner.warn{background:var(--amber-soft);color:var(--amber)}
+  .banner.bad{background:var(--red-soft);color:var(--red)}
+  .banner.good{background:var(--green-soft);color:var(--green)}
+  .banner.info{background:var(--brand-soft);color:var(--brand)}
+  .banner .em{font-size:22px;line-height:1}
+  .banner p{color:var(--text);opacity:.85}
+
+  /* Survey */
+  .q{padding:14px 0;border-bottom:1px solid var(--border)}
+  .q:last-child{border-bottom:none}
+  .q .qt{font-weight:700;margin-bottom:2px}
+  .q .qm{font-size:12px;color:var(--muted);margin-bottom:9px}
+  .q .opts{display:flex;flex-wrap:wrap;gap:7px}
+  .q .opts label{cursor:pointer}
+  .q .opts input{position:absolute;opacity:0;pointer-events:none}
+  .q .opts span{display:inline-block;padding:7px 12px;border-radius:20px;border:1px solid var(--border);
+    background:var(--surface-2);font-size:13px;font-weight:600}
+  .q .opts input:checked+span{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
+  .q .opts input:focus-visible+span{outline:2px solid var(--brand)}
+  .q.err .qt{color:var(--red)}
+  .dist{display:grid;grid-template-columns:minmax(90px,150px) 1fr 44px;gap:8px 10px;align-items:center;font-size:13px}
+  .dist .b{height:16px;background:var(--surface-2);border-radius:5px;overflow:hidden}
+  .dist .b i{display:block;height:100%;background:var(--brand);border-radius:5px}
+  .dist .n{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-size:12px;font-weight:700}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+
+  .tip{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+  .tip:last-child{border-bottom:none}
+  .tip .em{font-size:22px;flex:none;width:30px;text-align:center}
+  .tip b{display:block}
+  .tip p{color:var(--muted);font-size:13px}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:#14222a;color:#fff;padding:11px 18px;border-radius:11px;font-weight:600;font-size:13px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);transition:.25s;z-index:100;max-width:calc(100vw - 32px);text-align:center;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  [data-theme="dark"] .toast{background:#e5eef0;color:#14222a}
+  .muted{color:var(--muted)} .small{font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-row">
+    <div class="logo">F</div>
+    <div><h1>FOCUS</h1><small>Reels Control &amp; Study Reminder · रील्स नियंत्रण</small></div>
+    <div class="spacer"></div>
+    <button class="mini-timer" id="miniTimer" onclick="go('timer')" title="Open timer"></button>
+    <button class="icon-btn" onclick="toggleTheme()" title="Light / dark theme">◐</button>
+  </div>
+  <nav class="tabs" id="tabs">
+    <a href="#today" data-p="today">Today <span class="mr">आज</span></a>
+    <a href="#timer" data-p="timer">Focus Timer <span class="mr">अभ्यास</span></a>
+    <a href="#reels" data-p="reels">Reels Log <span class="mr">रील्स</span></a>
+    <a href="#survey" data-p="survey">Survey <span class="mr">प्रश्नावली</span></a>
+    <a href="#tips" data-p="tips">Tips <span class="mr">उपाय</span></a>
+    <a href="#settings" data-p="settings">Settings <span class="mr">सेटिंग्ज</span></a>
+  </nav>
+</header>
+
+<main>
+
+<!-- TODAY -->
+<section class="page" id="p-today">
+  <div class="page-title" id="greet">Today</div>
+  <div class="page-sub" id="todayDate"></div>
+  <div class="stack">
+    <div id="todayBanner"></div>
+    <div class="grid g4">
+      <div class="card stat"><div class="lbl">Study today · अभ्यास</div><div class="val" id="sStudy">0</div>
+        <div class="bar good" id="sStudyBar"><i></i></div><div class="hint" id="sStudyHint"></div></div>
+      <div class="card stat"><div class="lbl">Reels today · रील्स</div><div class="val" id="sReels">0</div>
+        <div class="bar" id="sReelsBar"><i></i></div><div class="hint" id="sReelsHint"></div></div>
+      <div class="card stat"><div class="lbl">Focus score · गुण</div><div class="val" id="sScore">0</div>
+        <div class="hint">Study goal 60% + reels limit 40%</div></div>
+      <div class="card stat"><div class="lbl">Study streak · सलग दिवस</div><div class="val" id="sStreak">0</div>
+        <div class="hint">Days the study goal was met</div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Last 7 days <span class="r small muted">minutes</span></h3>
+        <div class="week" id="week"></div>
+        <div class="legend"><span class="s">Study</span><span class="rl">Reels</span></div>
+      </div>
+      <div class="card">
+        <h3>Quick actions</h3>
+        <div class="btn-row" style="margin-bottom:14px">
+          <button class="btn primary lg" onclick="go('timer');startTimer()">▶ Start studying</button>
+        </div>
+        <label class="f">Just watched reels? Log it · पाहिलेले रील्स नोंदवा</label>
+        <div class="chips" id="quickReels"></div>
+        <h3 style="margin-top:18px">Today's activity</h3>
+        <ul class="list" id="todayList"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMER -->
+<section class="page" id="p-timer">
+  <div class="page-title">Focus Timer <span class="mr">· अभ्यास टायमर</span></div>
+  <div class="page-sub">Study in focused blocks with short breaks (Pomodoro). Leaving this tab during a focus block is counted as a distraction.</div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="timer-wrap">
+        <div class="ring" id="ring">
+          <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="52"/><circle class="prog" id="ringProg" cx="60" cy="60" r="52"/></svg>
+          <div class="center"><div class="mode" id="tMode">Focus</div><div class="time" id="tTime">25:00</div>
+            <div class="small muted" id="tDistr"></div></div>
+        </div>
+        <div class="quote" id="tQuote"></div>
+        <div class="btn-row" style="justify-content:center;margin-top:10px">
+          <button class="btn primary lg" id="tStart" onclick="toggleTimer()">▶ Start</button>
+          <button class="btn lg" onclick="finishEarly()" title="Save the minutes studied so far">✓ End &amp; save</button>
+          <button class="btn lg" onclick="resetTimer()">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <h3>Session</h3>
+        <div class="fields">
+          <div><label class="f">Subject · विषय</label><input class="input" id="tSubject" list="subjects" placeholder="e.g. Accounts"><datalist id="subjects"></datalist></div>
+          <div><label class="f">Focus length</label><select class="input" id="tLen">
+            <option value="15">15 min</option><option value="25">25 min</option><option value="45">45 min</option><option value="60">60 min</option></select></div>
+        </div>
+        <p class="small muted" style="margin-top:10px">Break after each block: <b id="tBreakLbl">5</b> min (change in Settings).</p>
+      </div>
+      <div class="card">
+        <h3>Today's sessions <span class="r pill b" id="tTodayTotal">0 min</span></h3>
+        <ul class="list" id="sessList"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REELS -->
+<section class="page" id="p-reels">
+  <div class="page-title">Reels Log <span class="mr">· रील्स नोंद</span></div>
+  <div class="page-sub">A browser can't read your phone's screen time, so log it here — or copy the number from your phone's Digital Wellbeing / Screen Time.</div>
+  <div class="grid g2">
+    <div class="stack">
+      <div id="reelsBanner"></div>
+      <div class="card">
+        <h3>Add entry</h3>
+        <label class="f">App</label>
+        <div class="chips" id="appChips" style="margin-bottom:14px"></div>
+        <label class="f">Minutes</label>
+        <div class="chips" id="minChips" style="margin-bottom:10px"></div>
+        <div class="fields">
+          <div><label class="f">Custom minutes</label><input class="input" type="number" min="1" max="600" id="rMin" placeholder="e.g. 40"></div>
+          <div><label class="f">Date</label><input class="input" type="date" id="rDate"></div>
+        </div>
+        <div class="btn-row" style="margin-top:12px"><button class="btn primary" onclick="addReelsCustom()">+ Add</button></div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <h3>This week by app</h3>
+        <div class="dist" id="appDist"></div>
+      </div>
+      <div class="card">
+        <h3>Recent entries</h3>
+        <ul class="list" id="reelsList"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SURVEY -->
+<section class="page" id="p-survey">
+  <div class="page-title">Research Questionnaire <span class="mr">· प्रश्नावली</span></div>
+  <div class="page-sub">Collect responses from classmates on this device (pass the phone/laptop around), then view the summary and export CSV for analysis. Responses are anonymous.</div>
+  <div class="chips" style="margin-bottom:16px">
+    <button class="chip on" id="svTabForm" onclick="surveyView('form')">Fill survey</button>
+    <button class="chip" id="svTabRes" onclick="surveyView('res')">Results <span id="svCount"></span></button>
+  </div>
+  <div id="svForm" class="card">
+    <form id="surveyForm" onsubmit="submitSurvey(event)"></form>
+  </div>
+  <div id="svRes" class="stack" style="display:none"></div>
+</section>
+
+<!-- TIPS -->
+<section class="page" id="p-tips">
+  <div class="page-title">Ways to cut screen time <span class="mr">· स्क्रीन टाइम कमी करण्याचे उपाय</span></div>
+  <div class="page-sub">Practical habits to protect your concentration.</div>
+  <div class="card" id="tipsList"></div>
+</section>
+
+<!-- SETTINGS -->
+<section class="page" id="p-settings">
+  <div class="page-title">Settings <span class="mr">· सेटिंग्ज</span></div>
+  <div class="page-sub">Goals, limits and reminders. Everything is saved only on this device.</div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Goals &amp; limits</h3>
+      <div class="fields">
+        <div style="grid-column:1/-1"><label class="f">Your name (optional)</label><input class="input" id="stName"></div>
+        <div><label class="f">Daily study goal (min)</label><input class="input" type="number" min="10" max="900" id="stGoal"></div>
+        <div><label class="f">Daily reels limit (min)</label><input class="input" type="number" min="0" max="600" id="stLimit"></div>
+        <div><label class="f">Default focus block (min)</label><select class="input" id="stFocus">
+          <option>15</option><option>25</option><option>45</option><option>60</option></select></div>
+        <div><label class="f">Break (min)</label><input class="input" type="number" min="1" max="30" id="stBreak"></div>
+      </div>
+      <div class="btn-row" style="margin-top:14px"><button class="btn primary" onclick="saveSettings()">Save</button></div>
+    </div>
+    <div class="card">
+      <h3>Reminders · आठवण</h3>
+      <p class="small muted" style="margin-bottom:10px">Study reminders and a "phone away" bedtime alert. They work while FOCUS is open in a tab (keep it pinned).</p>
+      <ul class="list" id="remList"></ul>
+      <div class="fields" style="margin-top:10px">
+        <div><label class="f">New study reminder</label><input class="input" type="time" id="remNew"></div>
+        <div style="align-self:end"><button class="btn" onclick="addReminder()">+ Add reminder</button></div>
+        <div><label class="f">Bedtime – phone away</label><input class="input" type="time" id="stBed"></div>
+        <div style="align-self:end"><button class="btn" onclick="saveBedtime()">Save bedtime</button></div>
+      </div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn" id="notifBtn" onclick="askNotif()">🔔 Enable notifications</button>
+        <button class="btn" onclick="fireReminder('Test reminder','This is how FOCUS reminds you to study.')">Test</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Data</h3>
+      <p class="small muted" style="margin-bottom:12px">Stored in this browser only. Back up to move to another device.</p>
+      <div class="btn-row">
+        <button class="btn" onclick="backup()">⬇ Backup</button>
+        <button class="btn" onclick="document.getElementById('restoreFile').click()">⬆ Restore</button>
+        <input type="file" id="restoreFile" accept="application/json,.json" hidden onchange="restore(this)">
+        <button class="btn danger" onclick="resetData()">Reset tracker</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Storage ---------- */
+const STORE_KEY = 'focusAppV1';
+const DEFAULTS = {
+  settings:{ name:'', studyGoal:120, reelsLimit:30, focusMin:25, breakMin:5, reminders:['18:00','21:00'], bedtime:'23:00' },
+  sessions:[],   // {id,date,time,minutes,subject,distractions}
+  reels:[],      // {id,date,time,minutes,app}
+  survey:[],     // questionnaire responses
+  timer:null,    // persisted running timer
+  fired:{}       // reminder keys already fired: {"2026-10-13 18:00":1}
+};
+let db;
+function load(){
+  try{ db = JSON.parse(localStorage.getItem(STORE_KEY)); }catch(e){ db = null; }
+  if(!db || typeof db!=='object') db = JSON.parse(JSON.stringify(DEFAULTS));
+  for(const k in DEFAULTS) if(db[k]===undefined) db[k] = JSON.parse(JSON.stringify(DEFAULTS[k]));
+  db.settings = Object.assign({}, DEFAULTS.settings, db.settings);
+}
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }catch(e){ toast('⚠ Could not save (storage blocked)'); } }
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const pad = n => String(n).padStart(2,'0');
+const dkey = (d=new Date()) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hm = (d=new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtMin = m => m>=60 ? `${Math.floor(m/60)}h ${m%60? (m%60)+'m':''}`.trim() : `${m} min`;
+const sum = (a,f) => a.reduce((s,x)=>s+(+f(x)||0),0);
+function dayOffset(n){ const d=new Date(); d.setDate(d.getDate()+n); return d; }
+function studyOn(k){ return sum(db.sessions.filter(s=>s.date===k), s=>s.minutes); }
+function reelsOn(k){ return sum(db.reels.filter(r=>r.date===k), r=>r.minutes); }
+let toastT;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2800); }
+
+function focusScore(k){
+  const s=db.settings, st=studyOn(k), rl=reelsOn(k);
+  const studyPart = Math.min(1, st/Math.max(1,s.studyGoal))*60;
+  let reelsPart = 40;
+  if(rl > s.reelsLimit) reelsPart = Math.max(0, 40 - (rl-s.reelsLimit)/Math.max(10,s.reelsLimit)*40);
+  return Math.round(studyPart+reelsPart);
+}
+function streak(){
+  let n=0, i=0;
+  if(studyOn(dkey()) < db.settings.studyGoal) i=-1; // today not done yet — count from yesterday
+  while(studyOn(dkey(dayOffset(i))) >= db.settings.studyGoal){ n++; i--; }
+  return n;
+}
+
+/* ---------- Navigation ---------- */
+const PAGES=['today','timer','reels','survey','tips','settings'];
+function go(p){ if(!PAGES.includes(p)) p='today'; if(location.hash!=='#'+p) history.replaceState(null,'','#'+p); show(p); }
+function show(p){
+  PAGES.forEach(x=>$('p-'+x).classList.toggle('active',x===p));
+  document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('active',a.dataset.p===p));
+  render(p); window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',()=>show(PAGES.includes(location.hash.slice(1))?location.hash.slice(1):'today'));
+function render(p){ ({today:renderToday,timer:renderTimerPage,reels:renderReels,survey:renderSurvey,tips:renderTips,settings:renderSettings})[p](); }
+function rerender(){ const p=location.hash.slice(1); render(PAGES.includes(p)?p:'today'); }
+
+/* ---------- Today ---------- */
+function limitBanner(){
+  const s=db.settings, rl=reelsOn(dkey());
+  if(s.reelsLimit>0 && rl>s.reelsLimit) return `<div class="banner bad"><div class="em">⛔</div><div><b>Reels limit crossed by ${rl-s.reelsLimit} min</b><p>That time could have been ${Math.round((rl-s.reelsLimit)/25*10)/10} focus blocks. Put the phone in another room and start a 25‑min session.</p></div></div>`;
+  if(s.reelsLimit>0 && rl>=s.reelsLimit*0.8) return `<div class="banner warn"><div class="em">⚠️</div><div><b>Almost at your reels limit</b><p>${rl} of ${s.reelsLimit} min used today. Close the app before "just one more".</p></div></div>`;
+  return '';
+}
+function renderToday(){
+  const s=db.settings, k=dkey(), st=studyOn(k), rl=reelsOn(k), now=new Date();
+  const hr=now.getHours();
+  $('greet').textContent = (hr<12?'Good morning':hr<17?'Good afternoon':'Good evening') + (s.name?`, ${s.name}`:'');
+  $('todayDate').textContent = now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  $('sStudy').innerHTML = `${st}<small> / ${s.studyGoal} min</small>`;
+  setBar('sStudyBar', st/s.studyGoal);
+  $('sStudyHint').textContent = st>=s.studyGoal ? 'Goal reached 🎉' : `${s.studyGoal-st} min to go`;
+  $('sReels').innerHTML = `${rl}<small> / ${s.reelsLimit} min</small>`;
+  const ratio = s.reelsLimit? rl/s.reelsLimit : (rl?2:0);
+  setBar('sReelsBar', ratio, ratio>1?'bad':ratio>=.8?'warn':'');
+  $('sReelsHint').textContent = rl<=s.reelsLimit ? `${s.reelsLimit-rl} min left in limit` : `${rl-s.reelsLimit} min over limit`;
+  $('sScore').innerHTML = `${focusScore(k)}<small> / 100</small>`;
+  const sk=streak(); $('sStreak').innerHTML = `${sk}<small> ${sk===1?'day':'days'} 🔥</small>`;
+
+  let b = limitBanner();
+  if(!b && st>=s.studyGoal) b = `<div class="banner good"><div class="em">✅</div><div><b>Study goal done for today!</b><p>Great discipline. Keep the streak going tomorrow.</p></div></div>`;
+  if(!b && !st && hr>=17) b = `<div class="banner info"><div class="em">📚</div><div><b>No study logged yet today</b><p>Start with one short 15‑minute block — starting is the hardest part.</p></div></div>`;
+  $('todayBanner').innerHTML = b;
+
+  // week chart
+  const days=[...Array(7)].map((_,i)=>dayOffset(i-6));
+  const vals=days.map(d=>({d, s:studyOn(dkey(d)), r:reelsOn(dkey(d))}));
+  const mx=Math.max(30, ...vals.map(v=>Math.max(v.s,v.r)));
+  $('week').innerHTML = vals.map((v,i)=>`<div class="day${i===6?' today':''}" title="${v.d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}: study ${v.s} min, reels ${v.r} min">
+    <div class="bars"><i class="s" style="height:${v.s/mx*100}%"></i><i class="rl" style="height:${v.r/mx*100}%"></i></div>
+    <div class="d">${i===6?'Today':v.d.toLocaleDateString('en-IN',{weekday:'short'})}</div></div>`).join('');
+
+  $('quickReels').innerHTML = [5,10,15,30].map(m=>`<button class="chip" onclick="addReels(${m})">+${m} min</button>`).join('');
+
+  const items=[...db.sessions.filter(x=>x.date===k).map(x=>({t:x.time,h:`<span class="pill b">Study</span><div class="grow">${esc(x.subject||'General')}<div class="meta">${x.time}${x.distractions?` · ${x.distractions} distraction${x.distractions>1?'s':''}`:''}</div></div><b>${x.minutes}m</b>`})),
+               ...db.reels.filter(x=>x.date===k).map(x=>({t:x.time,h:`<span class="pill a">Reels</span><div class="grow">${esc(x.app)}<div class="meta">${x.time}</div></div><b>${x.minutes}m</b>`}))]
+    .sort((a,b)=>b.t.localeCompare(a.t));
+  $('todayList').innerHTML = items.length? items.map(i=>`<li>${i.h}</li>`).join('') : `<li class="empty" style="display:block">Nothing logged yet today.</li>`;
+}
+function setBar(id, ratio, cls){ const el=$(id); el.querySelector('i').style.width=Math.min(100,Math.round(ratio*100))+'%'; if(cls!==undefined) el.className='bar '+cls; }
+
+/* ---------- Timer ---------- */
+const QUOTES=['Phone face‑down. Mind switched on.','One focused hour beats three distracted ones.','Reels will still be there. This chapter needs you now.',
+  'Small steps every day add up to big results.','Discipline is choosing what you want most over what you want now.','अभ्यास हाच यशाचा मार्ग आहे.','Stay with it — the urge to scroll passes in a few minutes.'];
+const C = 2*Math.PI*52;
+let tick=null;
+function T(){ return db.timer; }
+function newTimer(mode){
+  const s=db.settings, len = mode==='focus' ? (+$('tLen').value || s.focusMin) : s.breakMin;
+  return { mode, total:len*60, remaining:len*60, endAt:null, running:false, distractions:0, subject:$('tSubject').value.trim() };
+}
+function startTimer(){ if(!T()) db.timer=newTimer('focus'); if(!T().running) toggleTimer(); }
+function toggleTimer(){
+  if(!T()) db.timer=newTimer('focus');
+  const t=T();
+  if(t.running){ t.remaining=Math.max(0,Math.round((t.endAt-Date.now())/1000)); t.running=false; t.endAt=null; }
+  else{ if(t.mode==='focus') t.subject=$('tSubject').value.trim(); t.endAt=Date.now()+t.remaining*1000; t.running=true;
+        $('tQuote').textContent = t.mode==='focus' ? QUOTES[Math.floor(Math.random()*QUOTES.length)] : 'Stretch, drink water, look away from screens. Avoid reels in the break!'; }
+  save(); runTick(); drawTimer();
+}
+function resetTimer(){ db.timer=null; save(); runTick(); drawTimer(); $('tQuote').textContent=''; }
+function logSession(minutes, t){
+  if(minutes<1) return;
+  db.sessions.push({id:uid(), date:dkey(), time:hm(new Date(Date.now()-minutes*60000)), minutes, subject:t.subject||'', distractions:t.distractions||0});
+}
+function finishEarly(){
+  const t=T(); if(!t || t.mode!=='focus'){ toast('Start a focus block first'); return; }
+  const left = t.running ? Math.max(0,(t.endAt-Date.now())/1000) : t.remaining;
+  const done = Math.floor((t.total-left)/60);
+  if(done<1){ toast('Less than a minute studied — nothing to save'); resetTimer(); return; }
+  logSession(done,t); db.timer=null; save(); runTick(); drawTimer(); $('tQuote').textContent='';
+  toast(`✓ Saved ${done} min of study`); renderTimerPage();
+}
+function completePhase(){
+  const t=T();
+  if(t.mode==='focus'){
+    logSession(Math.round(t.total/60), t);
+    fireReminder('Focus block complete! 🎉', `${Math.round(t.total/60)} min studied. Take a ${db.settings.breakMin}-min break — not on reels!`);
+    db.timer=newTimer('break'); db.timer.endAt=Date.now()+db.timer.remaining*1000; db.timer.running=true;
+    $('tQuote').textContent='Stretch, drink water, look away from screens. Avoid reels in the break!';
+  }else{
+    fireReminder('Break over ⏰','Ready for the next focus block?');
+    db.timer=newTimer('focus'); $('tQuote').textContent='';
+  }
+  save(); runTick(); rerender();
+}
+function runTick(){
+  clearInterval(tick); tick=null;
+  if(T() && T().running) tick=setInterval(()=>{ if(T().running && Date.now()>=T().endAt) completePhase(); drawTimer(); },500);
+}
+function drawTimer(){
+  const t=T(), s=db.settings;
+  const total = t? t.total : (+$('tLen').value||s.focusMin)*60;
+  const left = t? (t.running? Math.max(0,Math.ceil((t.endAt-Date.now())/1000)) : t.remaining) : total;
+  const txt = `${pad(Math.floor(left/60))}:${pad(left%60)}`;
+  $('tTime').textContent = txt;
+  $('tMode').textContent = !t||t.mode==='focus' ? 'Focus · अभ्यास' : 'Break · विश्रांती';
+  $('ring').classList.toggle('break', !!t && t.mode==='break');
+  const p=$('ringProg'); p.style.strokeDasharray=C; p.style.strokeDashoffset = C*(left/total);
+  $('tStart').textContent = t&&t.running ? '❚❚ Pause' : (t&&t.remaining<t.total ? '▶ Resume' : '▶ Start');
+  $('tDistr').textContent = t&&t.mode==='focus'&&t.distractions ? `${t.distractions} distraction${t.distractions>1?'s':''}` : '';
+  $('tLen').disabled = !!t;
+  const mt=$('miniTimer'); mt.classList.toggle('on', !!t&&t.running); mt.textContent = (t&&t.mode==='break'?'☕ ':'⏱ ')+txt;
+  document.title = t&&t.running ? `${txt} · FOCUS` : 'FOCUS – Study App';
+}
+function renderTimerPage(){
+  const s=db.settings;
+  if(!T()) $('tLen').value = String(s.focusMin);
+  else { $('tLen').value = String(T().mode==='focus'? Math.round(T().total/60) : s.focusMin); if(T().subject) $('tSubject').value=T().subject; }
+  $('tBreakLbl').textContent = s.breakMin;
+  $('subjects').innerHTML = [...new Set(db.sessions.map(x=>x.subject).filter(Boolean))].slice(-12).map(x=>`<option value="${esc(x)}">`).join('');
+  const k=dkey(), list=db.sessions.filter(x=>x.date===k).slice().reverse();
+  $('tTodayTotal').textContent = fmtMin(studyOn(k));
+  $('sessList').innerHTML = list.length? list.map(x=>`<li><div class="grow"><b>${esc(x.subject||'General')}</b><div class="meta">${x.time} · ${x.distractions?`${x.distractions} distraction${x.distractions>1?'s':''}`:'no distractions'}</div></div><span class="pill b">${x.minutes} min</span><button class="x" title="Delete" onclick="delItem('sessions','${x.id}')">✕</button></li>`).join('')
+    : `<li class="empty" style="display:block">No sessions yet. Press Start!</li>`;
+  drawTimer();
+}
+document.addEventListener('visibilitychange',()=>{
+  const t=T(); if(!t||!t.running||t.mode!=='focus') return;
+  if(document.hidden){ t.distractions=(t.distractions||0)+1; save(); }
+  else { toast('👀 You left the study tab — reels can wait!'); drawTimer(); }
+});
+
+/* ---------- Reels ---------- */
+const APPS=['Instagram Reels','YouTube Shorts','Facebook Reels','Other'];
+let selApp=APPS[0];
+function addReels(m, date){
+  m=Math.round(+m); if(!(m>0)){ toast('Enter minutes'); return; }
+  const d = date || dkey();
+  db.reels.push({id:uid(), date:d, time: d===dkey()? hm() : '—', minutes:m, app:selApp});
+  save(); rerender();
+  const rl=reelsOn(dkey()), lim=db.settings.reelsLimit;
+  toast(rl>lim && d===dkey() ? `⛔ ${rl} min today — over your ${lim}-min limit` : `Logged ${m} min of ${selApp}`);
+}
+function addReelsCustom(){ const m=$('rMin').value; addReels(m, $('rDate').value||dkey()); $('rMin').value=''; }
+function renderReels(){
+  $('reelsBanner').innerHTML = limitBanner();
+  $('appChips').innerHTML = APPS.map(a=>`<button class="chip${a===selApp?' on':''}" onclick="selApp='${a}';renderReels()">${a}</button>`).join('');
+  $('minChips').innerHTML = [5,10,15,30,60].map(m=>`<button class="chip" onclick="addReels(${m}, $('rDate').value||dkey())">+${m}</button>`).join('');
+  if(!$('rDate').value) $('rDate').value=dkey();
+  $('rDate').max=dkey();
+  const wk=new Set([...Array(7)].map((_,i)=>dkey(dayOffset(-i))));
+  const byApp=APPS.map(a=>[a, sum(db.reels.filter(r=>wk.has(r.date)&&r.app===a), r=>r.minutes)]);
+  const tot=sum(byApp,x=>x[1]), mx=Math.max(1,...byApp.map(x=>x[1]));
+  $('appDist').innerHTML = tot ? byApp.map(([a,m])=>`<div>${a}</div><div class="b"><i style="width:${m/mx*100}%;background:var(--amber)"></i></div><div class="n">${m}m</div>`).join('')
+    + `<div><b>Total</b></div><div class="small muted">≈ ${fmtMin(Math.round(tot/7))} per day</div><div class="n"><b>${tot}m</b></div>`
+    : `<div class="empty" style="grid-column:1/-1">No reels logged in the last 7 days.</div>`;
+  const list=db.reels.slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,25);
+  $('reelsList').innerHTML = list.length? list.map(x=>`<li><div class="grow"><b>${esc(x.app)}</b><div class="meta">${new Date(x.date+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'})} ${x.time!=='—'?'· '+x.time:''}</div></div><span class="pill a">${x.minutes} min</span><button class="x" title="Delete" onclick="delItem('reels','${x.id}')">✕</button></li>`).join('')
+    : `<li class="empty" style="display:block">No entries yet.</li>`;
+}
+function delItem(coll,id){ db[coll]=db[coll].filter(x=>x.id!==id); save(); rerender(); }
+
+/* ---------- Survey ---------- */
+const Q=[
+  {id:'year', t:'Year of study', m:'शिक्षणाचे वर्ष', o:['FY','SY','TY','PG / Other']},
+  {id:'gender', t:'Gender (optional)', m:'लिंग (ऐच्छिक)', o:['Male','Female','Prefer not to say'], opt:true},
+  {id:'reelsTime', t:'How much time do you spend on reels / shorts per day?', m:'तुम्ही दररोज किती वेळ रील्स पाहता?', o:['< 30 min','30–60 min','1–2 hrs','2–3 hrs','> 3 hrs']},
+  {id:'platform', t:'Which platform do you use most for short videos?', m:'सर्वाधिक वापरले जाणारे ॲप', o:['Instagram Reels','YouTube Shorts','Facebook Reels','Other']},
+  {id:'when', t:'When do you watch reels the most?', m:'रील्स सर्वाधिक केव्हा पाहता?', o:['Morning','During study breaks','During lectures','Late night / before sleep']},
+  {id:'whileStudy', t:'Do you open reels while studying?', m:'अभ्यास करताना रील्स उघडता का?', o:['Never','Sometimes','Often','Always']},
+  {id:'concentration', t:'"Reels make it hard for me to concentrate on studies."', m:'रील्समुळे अभ्यासात लक्ष लागत नाही. (1 = पूर्ण असहमत, 5 = पूर्ण सहमत)', o:['1','2','3','4','5'], scale:true},
+  {id:'longerThanPlanned', t:'"I plan to watch for a few minutes but end up watching much longer."', m:'ठरवल्यापेक्षा जास्त वेळ पाहिले जाते. (1–5)', o:['1','2','3','4','5'], scale:true},
+  {id:'sleep', t:'Does watching reels delay your sleep?', m:'रील्समुळे झोपेची वेळ उशिरा होते का?', o:['No','Sometimes','Yes, often']},
+  {id:'incomplete', t:'How often does your study remain incomplete because of reels?', m:'रील्समुळे अभ्यास अपूर्ण राहतो का?', o:['Never','Sometimes','Often','Always']},
+  {id:'studyHours', t:'How many hours do you study per day (outside college)?', m:'दररोज अभ्यासाचे तास', o:['< 1 hr','1–2 hrs','2–3 hrs','> 3 hrs']},
+  {id:'wantApp', t:'Would a study‑reminder / reels‑control app help you?', m:'असे ॲप उपयोगी ठरेल का?', o:['Yes','Maybe','No']},
+  {id:'suggestion', t:'Any suggestion to reduce screen time? (optional)', m:'स्क्रीन टाइम कमी करण्यासाठी सूचना', text:true, opt:true},
+];
+function renderSurvey(){
+  $('svCount').textContent = db.survey.length? `(${db.survey.length})` : '';
+  if(!$('surveyForm').dataset.built){
+    $('surveyForm').innerHTML = Q.map((q,i)=>`<div class="q" id="q-${q.id}"><div class="qt">${i+1}. ${esc(q.t)}${q.opt?' <span class="muted small">(optional)</span>':''}</div><div class="qm">${esc(q.m)}</div>
+      ${q.text? `<textarea class="input" name="${q.id}" rows="2" maxlength="300"></textarea>`
+        : `<div class="opts" role="radiogroup">${q.o.map(o=>`<label><input type="radio" name="${q.id}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join('')}</div>`}</div>`).join('')
+      + `<div class="btn-row" style="margin-top:16px"><button class="btn primary lg" type="submit">Submit response · सबमिट</button><button class="btn lg" type="reset">Clear</button></div>`;
+    $('surveyForm').dataset.built='1';
+  }
+  if($('svRes').style.display!=='none') renderResults();
+}
+function surveyView(v){
+  $('svForm').style.display = v==='form'?'':'none'; $('svRes').style.display = v==='res'?'':'none';
+  $('svTabForm').classList.toggle('on',v==='form'); $('svTabRes').classList.toggle('on',v==='res');
+  if(v==='res') renderResults();
+}
+function submitSurvey(e){
+  e.preventDefault();
+  const fd=new FormData($('surveyForm')), r={id:uid(), at:new Date().toISOString()};
+  let firstMissing=null;
+  Q.forEach(q=>{ const v=(fd.get(q.id)||'').toString().trim(); r[q.id]=v; const el=$('q-'+q.id); const miss=!q.opt&&!v; el.classList.toggle('err',miss); if(miss&&!firstMissing) firstMissing=el; });
+  if(firstMissing){ firstMissing.scrollIntoView({behavior:'smooth',block:'center'}); toast('Please answer all required questions'); return; }
+  db.survey.push(r); save(); $('surveyForm').reset(); window.scrollTo(0,0);
+  $('svCount').textContent=`(${db.survey.length})`;
+  toast(`✓ Response #${db.survey.length} saved — thank you! धन्यवाद!`);
+}
+function distHTML(q){
+  const n=db.survey.length, counts=q.o.map(o=>db.survey.filter(r=>r[q.id]===o).length), mx=Math.max(1,...counts);
+  return `<div class="dist">${q.o.map((o,i)=>`<div>${esc(o)}</div><div class="b"><i style="width:${counts[i]/mx*100}%"></i></div><div class="n">${counts[i]} · ${n?Math.round(counts[i]/n*100):0}%</div>`).join('')}</div>`;
+}
+function avg(arr){ return arr.length? (arr.reduce((a,b)=>a+b,0)/arr.length) : null; }
+function renderResults(){
+  const R=db.survey, n=R.length, el=$('svRes');
+  if(!n){ el.innerHTML=`<div class="card empty">No responses yet. Collect some using “Fill survey”.</div>`; return; }
+  const q=id=>Q.find(x=>x.id===id);
+  const pct = (f)=> Math.round(R.filter(f).length/n*100);
+  const heavy = pct(r=>['1–2 hrs','2–3 hrs','> 3 hrs'].includes(r.reelsTime));
+  const whileSt = pct(r=>['Often','Always'].includes(r.whileStudy));
+  const agreeConc = pct(r=>+r.concentration>=4);
+  const sleep = pct(r=>r.sleep==='Yes, often');
+  // Cross-tab: concentration difficulty by daily reels time — the core research question
+  const cross = q('reelsTime').o.map(o=>{ const g=R.filter(r=>r.reelsTime===o); return {o, n:g.length,
+    conc:avg(g.map(r=>+r.concentration)), longer:avg(g.map(r=>+r.longerThanPlanned)),
+    inc:g.length? Math.round(g.filter(r=>['Often','Always'].includes(r.incomplete)).length/g.length*100):null}; });
+  const f1=v=>v==null?'–':v.toFixed(1);
+  const sugg=R.filter(r=>r.suggestion).slice(-8).reverse();
+  el.innerHTML = `
+    ${n<30?`<div class="banner warn"><div class="em">ℹ️</div><div><b>Only ${n} response${n>1?'s':''} so far</b><p>Collect at least 30–50 responses before drawing conclusions. प्रत्यक्ष संशोधनानंतरच निष्कर्ष निश्चित करा.</p></div></div>`:''}
+    <div class="grid g4">
+      <div class="card stat"><div class="lbl">Responses</div><div class="val">${n}</div></div>
+      <div class="card stat"><div class="lbl">Watch reels 1 hr+/day</div><div class="val">${heavy}%</div></div>
+      <div class="card stat"><div class="lbl">Open reels while studying (often/always)</div><div class="val">${whileSt}%</div></div>
+      <div class="card stat"><div class="lbl">Agree reels hurt concentration (4–5)</div><div class="val">${agreeConc}%</div><div class="hint">Sleep often delayed: ${sleep}%</div></div>
+    </div>
+    <div class="card"><h3>Concentration vs. daily reels time <span class="r small muted">key comparison</span></h3>
+      <div style="overflow-x:auto"><table><thead><tr><th>Daily reels time</th><th class="num">n</th><th class="num">Concentration difficulty (avg 1–5)</th><th class="num">Watch longer than planned (avg 1–5)</th><th class="num">Study often incomplete</th></tr></thead>
+      <tbody>${cross.map(c=>`<tr><td>${esc(c.o)}</td><td class="num">${c.n}</td><td class="num">${f1(c.conc)}</td><td class="num">${f1(c.longer)}</td><td class="num">${c.inc==null?'–':c.inc+'%'}</td></tr>`).join('')}</tbody></table></div>
+      <p class="small muted" style="margin-top:10px">If difficulty rises as reels time rises, that supports the hypothesis — but this is correlation from self‑reported data, not proof of cause.</p></div>
+    <div class="grid g2">
+      ${['reelsTime','platform','when','whileStudy','concentration','sleep','incomplete','studyHours','wantApp','year'].map(id=>`<div class="card"><h3>${esc(q(id).t)}</h3>${distHTML(q(id))}</div>`).join('')}
+    </div>
+    ${sugg.length?`<div class="card"><h3>Recent suggestions</h3><ul class="list">${sugg.map(r=>`<li><div class="grow">“${esc(r.suggestion)}”</div></li>`).join('')}</ul></div>`:''}
+    <div class="card"><h3>Export &amp; manage</h3>
+      <p class="small muted" style="margin-bottom:12px">CSV opens in Excel / Google Sheets for charts and analysis in your report.</p>
+      <div class="btn-row"><button class="btn primary" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn danger" onclick="clearSurvey()">Delete all responses</button></div></div>`;
+}
+function csvCell(v){ v=String(v??''); return /[",\n]/.test(v)? `"${v.replace(/"/g,'""')}"` : v; }
+function exportCSV(){
+  const cols=['at',...Q.map(q=>q.id)];
+  const csv=[cols.join(','), ...db.survey.map(r=>cols.map(c=>csvCell(r[c])).join(','))].join('\n');
+  download('﻿'+csv, `focus-survey-${dkey()}.csv`, 'text/csv');
+}
+function clearSurvey(){ if(confirm(`Delete all ${db.survey.length} survey responses? Export CSV first if you need them.`)){ db.survey=[]; save(); renderSurvey(); renderResults(); toast('Responses deleted'); } }
+
+/* ---------- Tips ---------- */
+const TIPS=[
+  ['📵','Phone in another room while studying','Out of sight is out of mind. Even a phone on the desk reduces focus.'],
+  ['⏱️','Use 25‑minute focus blocks','Short, timed sessions with breaks are easier to start and keep (Pomodoro technique).'],
+  ['🔕','Turn off reels/social notifications','Every ping pulls you back. Keep only calls and important messages on.'],
+  ['⌛','Set app limits on your phone','Use Digital Wellbeing (Android) or Screen Time (iPhone) to cap Instagram/YouTube at your FOCUS limit.'],
+  ['🌙','No reels 1 hour before sleep','Late‑night scrolling delays sleep, and poor sleep hurts next‑day concentration. Set a bedtime reminder.'],
+  ['🎯','Reels only as a reward','Watch a fixed 10 minutes after finishing a goal — never in the middle of a study block.'],
+  ['🏠','Move apps off the home screen','Put reels apps inside a folder on the last page so opening them takes a conscious decision.'],
+  ['🤝','Study with a friend / group','Accountability makes it harder to drift into scrolling.'],
+  ['📝','Plan tomorrow tonight','Write 3 study tasks before bed so you start the day with a clear target.'],
+  ['🚶','Take real breaks','Walk, stretch or drink water in breaks — reels in a break rarely stay at 5 minutes.'],
+];
+function renderTips(){ $('tipsList').innerHTML = TIPS.map(([e,t,p])=>`<div class="tip"><div class="em">${e}</div><div><b>${t}</b><p>${p}</p></div></div>`).join(''); }
+
+/* ---------- Settings & reminders ---------- */
+function renderSettings(){
+  const s=db.settings;
+  $('stName').value=s.name; $('stGoal').value=s.studyGoal; $('stLimit').value=s.reelsLimit;
+  $('stFocus').value=String(s.focusMin); $('stBreak').value=s.breakMin; $('stBed').value=s.bedtime||'';
+  $('remList').innerHTML = s.reminders.length ? s.reminders.slice().sort().map(r=>`<li><span class="pill b">📚 ${r}</span><div class="grow small muted">Study reminder</div><button class="x" onclick="delReminder('${r}')">✕</button></li>`).join('')
+    : `<li class="empty" style="display:block">No study reminders.</li>`;
+  const perm = 'Notification' in window ? Notification.permission : 'unsupported';
+  $('notifBtn').textContent = perm==='granted'?'🔔 Notifications on':perm==='denied'?'🔕 Notifications blocked':perm==='unsupported'?'🔕 Not supported':'🔔 Enable notifications';
+  $('notifBtn').disabled = perm!=='default';
+}
+function clampNum(v,min,max,def){ v=Math.round(+v); return Number.isFinite(v)? Math.min(max,Math.max(min,v)) : def; }
+function saveSettings(){
+  const s=db.settings;
+  s.name=$('stName').value.trim().slice(0,30);
+  s.studyGoal=clampNum($('stGoal').value,10,900,120); s.reelsLimit=clampNum($('stLimit').value,0,600,30);
+  s.focusMin=+$('stFocus').value; s.breakMin=clampNum($('stBreak').value,1,30,5);
+  save(); renderSettings(); toast('Settings saved');
+}
+function addReminder(){ const v=$('remNew').value; if(!v){ toast('Pick a time'); return; } if(!db.settings.reminders.includes(v)) db.settings.reminders.push(v); save(); $('remNew').value=''; renderSettings(); toast(`Reminder set for ${v}`); }
+function delReminder(v){ db.settings.reminders=db.settings.reminders.filter(x=>x!==v); save(); renderSettings(); }
+function saveBedtime(){ db.settings.bedtime=$('stBed').value; save(); toast(db.settings.bedtime?`Bedtime alert at ${db.settings.bedtime}`:'Bedtime alert off'); }
+function askNotif(){ if('Notification' in window) Notification.requestPermission().then(renderSettings); }
+function beep(){ try{ const a=new (window.AudioContext||window.webkitAudioContext)(); [0,.25,.5].forEach(t=>{ const o=a.createOscillator(), g=a.createGain(); o.frequency.value=880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.15,a.currentTime+t); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.2); o.start(a.currentTime+t); o.stop(a.currentTime+t+.2); }); }catch(e){} }
+function fireReminder(title, body){
+  beep(); toast(title);
+  try{ if('Notification' in window && Notification.permission==='granted') new Notification(title,{body}); }catch(e){}
+}
+function checkReminders(){
+  const now=hm(), k=dkey(), s=db.settings;
+  const due=[];
+  s.reminders.forEach(r=>{ if(r===now) due.push(['📚 Time to study!', studyOn(k)>=s.studyGoal? 'Goal already met — a short revision keeps it strong.' : `${s.studyGoal-studyOn(k)} min left for today's goal. Open FOCUS and start a block.`, r]); });
+  if(s.bedtime && s.bedtime===now) due.push(['🌙 Phone away — bedtime', 'Stop scrolling now for better sleep and better concentration tomorrow.', 'bed']);
+  let changed=false;
+  due.forEach(([t,b,id])=>{ const key=`${k} ${id}`; if(!db.fired[key]){ db.fired[key]=1; changed=true; fireReminder(t,b); } });
+  if(changed){ for(const key in db.fired) if(!key.startsWith(k)) delete db.fired[key]; save(); }
+}
+
+/* ---------- Backup ---------- */
+async function download(text, name, type){
+  let dl=null;
+  try{ if(window.claude && claude.use) dl=await claude.use('downloads'); }catch(e){}
+  if(dl){ try{ await dl.save({name, content:text, mimeType:type}); return; }catch(e){} }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+}
+function backup(){ download(JSON.stringify(db,null,2), `focus-backup-${dkey()}.json`, 'application/json'); }
+function restore(inp){
+  const f=inp.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const d=JSON.parse(rd.result); if(!d||!Array.isArray(d.sessions)||!Array.isArray(d.reels)) throw 0;
+      if(!confirm('Replace all current data with this backup?')) return;
+      localStorage.setItem(STORE_KEY, JSON.stringify(d)); load(); runTick(); rerender(); toast('Backup restored');
+    }catch(e){ toast('⚠ Not a valid FOCUS backup file'); } inp.value=''; };
+  rd.readAsText(f);
+}
+function resetData(){
+  if(!confirm('Clear all study sessions and reels logs? (Settings and survey responses are kept.)')) return;
+  db.sessions=[]; db.reels=[]; db.timer=null; save(); runTick(); rerender(); toast('Tracker cleared');
+}
+
+/* ---------- Theme & init ---------- */
+function toggleTheme(){ const h=document.documentElement; const n=h.dataset.theme==='dark'?'light':'dark'; h.dataset.theme=n; try{localStorage.setItem('focusTheme',n)}catch(e){} }
+(function init(){
+  let th=null; try{ th=localStorage.getItem('focusTheme'); }catch(e){}
+  document.documentElement.dataset.theme = th || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+  load();
+  // a running timer that ended while the page was closed: finish it now
+  if(T() && T().running && Date.now()>=T().endAt){
+    if(T().mode==='focus'){ logSession(Math.round(T().total/60), T()); }
+    db.timer=null; save();
+  }
+  runTick();
+  go(location.hash.slice(1));
+  checkReminders(); setInterval(checkReminders, 15000);
+})();
+</script>
+</body>
+</html>
